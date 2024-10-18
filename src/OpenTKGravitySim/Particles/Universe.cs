@@ -1,9 +1,5 @@
 
-using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-using OpenTK.Windowing.Common;
-
-using OpenTKGravitySim.Graphics;
 
 
 
@@ -13,25 +9,30 @@ namespace OpenTKGravitySim.Particles;
 
 internal class Universe
 {
-    public readonly List<Particle> particles;
-
-    public List<float> ParticlePositions;
+    public readonly List<Particle> particleBufferA;
+    public readonly List<Particle> particleBufferB;
+    public bool UseParticleBufferA = true;
     public int NumParticles { get; private set; }
     private float timeStep;
+    public bool Running;
 
 
 
     public Universe(int numParticles, float size, float timeStep = 0.001f)
     {
         this.timeStep = timeStep;
+        NumParticles = numParticles;
+        Running = false;
 
         Random random = new((int) DateTimeOffset.Now.UtcTicks);
 
-        particles = new(numParticles);
+        particleBufferA = new(numParticles);
+        particleBufferB = new(numParticles);
         
         float centerMass = 1_000_000.0f;
         Particle centerParticle = new(Vector3.Zero, Vector3.Zero, centerMass);
-        particles.Add(centerParticle);
+        particleBufferA.Add(centerParticle);
+        particleBufferB.Add(centerParticle);
 
         for (int i = 1; i < numParticles; i++)
         {
@@ -39,61 +40,76 @@ internal class Universe
             Vector3 velocity = MathF.Sqrt(0.5f * centerMass / newPos.Length) * Vector3.Cross(-newPos, Vector3.UnitY).Normalized();
             Particle newParticle = new(newPos, velocity, 500.0f * random.NextSingle());
 
-            particles.Add(newParticle);
-        }
-
-        NumParticles = particles.Count;
-
-
-        ParticlePositions = new(particles.Count * 3);
-        
-        for (int i = 0; i < particles.Count; i++)
-        {
-            ParticlePositions.Add(particles[i].Position.X);
-            ParticlePositions.Add(particles[i].Position.Y);
-            ParticlePositions.Add(particles[i].Position.Z);
+            particleBufferA.Add(newParticle);
+            particleBufferB.Add(newParticle);
         }
     }
 
 
 
-    public void Update(FrameEventArgs args)
+    public void Run()
     {
-        float frameDelta = (float) args.Time;
+        Running = true;
 
-        int iterations = (int) MathF.Ceiling(frameDelta / timeStep);
-
-
-        for (int iteration = 0; iteration < iterations; iteration++)
+        while (Running)
         {
-            foreach (Particle particle in particles)
-            {
-                Vector3 gravForce = Vector3.Zero;
-                
-                foreach (Particle otherParticle in particles)
-                {
-                    if (particle == otherParticle) continue;
-                    Vector3 direction = otherParticle.Position - particle.Position;
-                    float distance = direction.Length;
-                    direction /= distance;
+            Parallel.For(0, NumParticles, StepParticle);
 
-                    gravForce += 100.0f * (otherParticle.Mass / (distance * distance)) * direction;
-                }
-
-                Vector3 acceleration = gravForce / particle.Mass;
-                particle.Velocity += timeStep * acceleration;
-                particle.Position += timeStep * particle.Velocity;
-            }
-        }
-
-
-        ParticlePositions = new(particles.Count * 3);
-        
-        for (int i = 0; i < particles.Count; i++)
-        {
-            ParticlePositions.Add(particles[i].Position.X);
-            ParticlePositions.Add(particles[i].Position.Y);
-            ParticlePositions.Add(particles[i].Position.Z);
+            SwapParticleBuffers();
         }
     }
+
+
+
+    private void StepParticle(int particleIndex)
+    {
+        List<Particle> prevBuffer = GetPrevParticleBuffer();
+        Particle particle = prevBuffer[particleIndex];
+        
+        Vector3 gravForce = Vector3.Zero;
+
+        for (int otherParticleIndex = 0; otherParticleIndex < NumParticles; otherParticleIndex++)
+        {
+            if (particleIndex == otherParticleIndex) continue;
+
+            Particle otherParticle = prevBuffer[otherParticleIndex];
+
+            Vector3 direction = otherParticle.Position - particle.Position;
+            float distance = direction.Length;
+            direction /= distance;
+
+            gravForce += 100.0f * (otherParticle.Mass / (distance * distance)) * direction;
+        }
+
+        Vector3 acceleration = gravForce / particle.Mass;
+        particle.Velocity += timeStep * acceleration;
+        particle.Position += timeStep * particle.Velocity;
+
+        List<Particle> nextBuffer = GetNextParticleBuffer();
+        nextBuffer[particleIndex] = particle;
+    }
+
+
+
+    public List<float> GetParticlePositions()
+    {
+        List<float> particlePositions = new(NumParticles * 3);
+
+        List<Particle> unusedBuffer = GetPrevParticleBuffer();
+        
+        for (int i = 0; i < NumParticles; i++)
+        {
+            particlePositions.Add(unusedBuffer[i].Position.X);
+            particlePositions.Add(unusedBuffer[i].Position.Y);
+            particlePositions.Add(unusedBuffer[i].Position.Z);
+        }
+
+        return particlePositions;
+    }
+
+
+
+    private List<Particle> GetPrevParticleBuffer() => UseParticleBufferA ? particleBufferB : particleBufferA;
+    private List<Particle> GetNextParticleBuffer() => UseParticleBufferA ? particleBufferA : particleBufferB;
+    private void SwapParticleBuffers() => UseParticleBufferA = !UseParticleBufferA;
 }

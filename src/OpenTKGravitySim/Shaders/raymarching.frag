@@ -28,7 +28,7 @@ struct Ray
 
 
 
-const int max_steps = 100;
+const int max_steps = 50;
 
 
 
@@ -102,7 +102,7 @@ void main()
 
         distanceTraveled += sceneDistance;
 
-        if (sceneDistance < 0.001) break;
+        if (sceneDistance < 0.1) break;
 
         if (numValidPositions <= 0 || distanceTraveled > farClip)
         {

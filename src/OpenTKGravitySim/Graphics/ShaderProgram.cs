@@ -8,14 +8,14 @@ namespace OpenTKGravitySim.Graphics;
 
 
 
-internal class ShaderProgram
+internal class ShaderProgram()
 {
     public int ID = -1;
     public bool IsCompiled { get; private set; } = false;
 
 
 
-    public ShaderProgram(string vertexShaderPath, string fragmentShaderPath)
+    public ShaderProgram(string vertexShaderPath, string fragmentShaderPath) : this()
     {
         CreateNewProgram(vertexShaderPath, fragmentShaderPath);
     }
@@ -90,6 +90,8 @@ internal class ShaderProgram
         SetUniform3("cameraUp", camera.up);
         SetUniform3("cameraRight", camera.right);
         SetUniform3("cameraPos", camera.Position);
+        SetUniformMatrix4("view", camera.ViewMatrix);
+        SetUniformMatrix4("projection", camera.ProjectionMatrix);
     }
 
 

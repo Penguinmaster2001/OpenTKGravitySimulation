@@ -46,7 +46,7 @@ internal class Camera
     }
 
     private float nearClip = 0.1f;
-    private float farClip = 10_000.0f;
+    private float farClip = 5_000.0f;
     private float sensitivity = 200.0f;
     private float MaxPitch = 89.99f;
     private float MinPitch = -89.99f;
@@ -55,7 +55,7 @@ internal class Camera
     public Vector3 Velocity { get; private set; }
     private bool firstMove = true;
     public Vector2 mouseLastPos;
-    public float mouseSmoothFactor = 0.8f;
+    public float mouseSmoothFactor = 0.5f;
 
     public Matrix4 ViewMatrix => Matrix4.LookAt(Position, Position + forward, up);
 

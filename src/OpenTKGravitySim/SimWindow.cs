@@ -9,7 +9,6 @@ using OpenTKGravitySim.Graphics;
 
 using OpenTKGravitySim.Particles;
 using ErrorCode = OpenTK.Graphics.OpenGL4.ErrorCode;
-using OpenTK.Platform.Windows;
 
 
 
@@ -23,18 +22,19 @@ internal class SimWindow : GameWindow
     private Quad windowQuad;
 
     private readonly Universe universe;
+    private List<float> particlePositions;
 
     private int windowWidth;
     private int windowHeight;
 
-    private ShaderProgram? shaderProgram;
+    private ShaderProgram shaderProgram;
     private string vertexShaderPath = "Shaders/oneQuad.vert";
-    // private string fragmentShaderPath = "Shaders/oneQuad.frag";
-    private string fragmentShaderPath = "Shaders/raymarching.frag";
+    private string fragmentShaderPath = "Shaders/oneQuad.frag";
+    // private string fragmentShaderPath = "Shaders/raymarching.frag";
 
 
 
-    public SimWindow(int width, int height) : base(GameWindowSettings.Default, NativeWindowSettings.Default)
+    public SimWindow(int width, int height, Universe universe, object lockObject) : base(GameWindowSettings.Default, NativeWindowSettings.Default)
     {
         windowWidth = width;
         windowHeight = height;
@@ -42,10 +42,12 @@ internal class SimWindow : GameWindow
         CenterWindow(new Vector2i(windowWidth, windowHeight));
 
         camera = new(windowWidth, windowHeight, Vector3.Zero);
+        shaderProgram = new();
 
         windowQuad = new();
 
-        universe = new(100, 1000.0f);
+        this.universe = universe;
+        particlePositions = [];
     }
 
 
@@ -65,12 +67,9 @@ internal class SimWindow : GameWindow
     {
         base.OnLoad();
 
-        shaderProgram = new(vertexShaderPath, fragmentShaderPath);
+        shaderProgram.CreateNewProgram(vertexShaderPath, fragmentShaderPath);
         
         GL.Enable(EnableCap.DepthTest);
-        // GL.FrontFace(FrontFaceDirection.Cw);
-        // GL.Enable(EnableCap.CullFace);
-        // GL.CullFace(CullFaceMode.Back);
     }
 
 
@@ -80,7 +79,8 @@ internal class SimWindow : GameWindow
         base.OnUnload();
 
         windowQuad.Delete();
-        shaderProgram?.Delete();
+        shaderProgram.Delete();
+        universe.Running = false;
     }
 
 
@@ -97,7 +97,8 @@ internal class SimWindow : GameWindow
             CursorState = CursorState == CursorState.Grabbed ? CursorState.Normal : CursorState.Grabbed;
         }
         camera.Update(keyboardState, mouseState, args);
-        universe.Update(args);
+
+        particlePositions = universe.GetParticlePositions();
     }
 
 
@@ -107,34 +108,18 @@ internal class SimWindow : GameWindow
         base.OnRenderFrame(args);
 
         GL.ClearColor(0.0627f, 0.0666f, 0.1019f, 1.0f);
-        CheckGLError();
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
+        int positionsLocation = shaderProgram.GetUniformLocation("positions");
+        int windowSizeLocation = shaderProgram.GetUniformLocation("windowSize");
+
+        GL.Uniform3(positionsLocation, universe.NumParticles, particlePositions.ToArray());
+        GL.Uniform2(windowSizeLocation, new Vector2(windowWidth, windowHeight));
+        shaderProgram.SetUniform1Int("numParticles", universe.NumParticles);
+        shaderProgram.SetCameraUniforms(camera);
         CheckGLError();
-        // Transformation matrices
-        Matrix4 model = Matrix4.Identity;
-        Matrix4 view = camera.ViewMatrix;
-        Matrix4 projection = camera.ProjectionMatrix;
 
-        if (shaderProgram is not null)
-        {
-            int positionsLocation = shaderProgram.GetUniformLocation("positions");
-            CheckGLError();
-            int windowSizeLocation = shaderProgram.GetUniformLocation("windowSize");
-            CheckGLError();
-
-            GL.Uniform3(positionsLocation, universe.NumParticles, universe.ParticlePositions.ToArray());
-            CheckGLError();
-            GL.Uniform2(windowSizeLocation, new Vector2(windowWidth, windowHeight));
-            shaderProgram.SetUniform1Int("numParticles", universe.NumParticles);
-            shaderProgram.SetCameraUniforms(camera);
-
-            windowQuad.Render(shaderProgram);
-        }
-        else
-        {
-            throw new Exception($"shaderProgram is null!!");
-        }
+        windowQuad.Render(shaderProgram);
 
 
         Context.SwapBuffers();
@@ -168,7 +153,6 @@ internal class SimWindow : GameWindow
         ErrorCode error = GL.GetError();
         if (error != ErrorCode.NoError)
         {
-            // throw new Exception($"OpenGL error: {error}");
             Console.WriteLine($"OpenGL error: {error}");
         }
     }

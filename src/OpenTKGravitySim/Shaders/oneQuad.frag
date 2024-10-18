@@ -3,20 +3,21 @@
 
 out vec4 FragColor;
 
-uniform vec3 positions[1000];
-// uniform float numParticles;
+uniform vec3 positions[10000];
+uniform int numParticles;
 uniform vec2 windowSize;
 
-uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
+
+
 void main()
 {
-    for(int i = 0; i < 50; i++)
+    for(int i = 0; i < numParticles; i++)
     {
         // Transform the position into clip space
-        vec4 clipSpacePos = vec4(positions[i], 1.0) * model * view * projection;
+        vec4 clipSpacePos = vec4(positions[i], 1.0) * view * projection;
 
         // Perform the perspective divide to get normalized device coordinates (NDC)
         vec3 ndcPos = clipSpacePos.xyz / clipSpacePos.w;
@@ -35,9 +36,9 @@ void main()
 
             // If the distance is within a certain threshold, color the fragment
             float depth = 1.0 - (0.5 * (ndcPos.z + 1.0));
-            if (dist < 0.1 * depth + 0.01) // Adjust the threshold as needed
+            if (dist < 10.0 * depth) // Adjust the threshold as needed
             {
-                FragColor = vec4(1.0, 0.0, depth, 1.0);
+                FragColor = vec4(10.0 * depth);
                 return;
             }
         }
