@@ -97,8 +97,6 @@ internal class SimWindow : GameWindow
             CursorState = CursorState == CursorState.Grabbed ? CursorState.Normal : CursorState.Grabbed;
         }
         camera.Update(keyboardState, mouseState, args);
-
-        particlePositions = universe.GetParticlePositions();
     }
 
 
@@ -119,7 +117,7 @@ internal class SimWindow : GameWindow
         shaderProgram.SetCameraUniforms(camera);
         CheckGLError();
 
-        windowQuad.Render(shaderProgram, particlePositions);
+        windowQuad.Render(shaderProgram, universe.GetPrevParticleBuffer());
         CheckGLError(true);
 
         Context.SwapBuffers();

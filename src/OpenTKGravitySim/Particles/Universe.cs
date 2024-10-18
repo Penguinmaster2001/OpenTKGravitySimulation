@@ -120,7 +120,7 @@ internal class Universe
 
 
 
-    private List<Particle> GetPrevParticleBuffer() => UseParticleBufferA ? particleBufferB : particleBufferA;
+    public List<Particle> GetPrevParticleBuffer() => UseParticleBufferA ? particleBufferB : particleBufferA;
     private List<Particle> GetNextParticleBuffer() => UseParticleBufferA ? particleBufferA : particleBufferB;
     private void SwapParticleBuffers() => UseParticleBufferA = !UseParticleBufferA;
 }

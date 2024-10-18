@@ -9,8 +9,15 @@ uniform vec2 windowSize;
 uniform mat4 view;
 uniform mat4 projection;
 
-layout(std430, binding = 0) buffer Positions {
-    vec3 positions[];
+struct Particle
+{
+    vec3 position;
+    vec3 velocity;
+    float mass;
+};
+
+layout(std430, binding = 0) buffer Particles {
+    Particle particles[];
 };
 
 
@@ -23,7 +30,8 @@ void main()
 
     for(int i = 0; i < numParticles; i++)
     {
-        vec4 clipSpacePos = vec4(positions[i], 1.0) * toClipSpace;
+        Particle particle = particles[i];
+        vec4 clipSpacePos = vec4(particle.position, 1.0) * toClipSpace;
 
         vec3 ndcPos = clipSpacePos.xyz / clipSpacePos.w;
 
@@ -38,7 +46,7 @@ void main()
             float sqrDist = (dir.x * dir.x) + (dir.y * dir.y);
 
             float depth = 1.0 - (0.5 * (ndcPos.z + 1.0));
-            if (ndcPos.z < nearestZ && sqrDist < 25.0 * depth * depth)
+            if (ndcPos.z < nearestZ && sqrDist < 5.0 * depth * depth * particle.mass)
             {
                 nearestDepth = depth;
                 nearestZ = ndcPos.z;

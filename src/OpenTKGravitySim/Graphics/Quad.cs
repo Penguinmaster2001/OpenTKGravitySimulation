@@ -1,6 +1,7 @@
 
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
+using OpenTKGravitySim.Particles;
 
 
 
@@ -42,29 +43,26 @@ internal class Quad
         vao.UnBind();
 
         ssbo = GL.GenBuffer();
-        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssbo);
-        GL.BufferData(BufferTarget.ShaderStorageBuffer, numParticles * Vector3.SizeInBytes, new Vector3[numParticles], BufferUsageHint.StaticDraw);
         
         ibo = new(indices);
     }
 
 
 
-    public void Render(ShaderProgram shaderProgram, List<Vector3> particlePositions)
+    public void Render(ShaderProgram shaderProgram, List<Particle> particles)
     {
         shaderProgram.Bind();
 
         GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssbo);
 
         GL.GetBufferParameter(BufferTarget.ShaderStorageBuffer, BufferParameterName.BufferSize, out int bufferSize);
-        int requiredSize = particlePositions.Count * Vector3.SizeInBytes;
+        int requiredSize = particles.Count * Particle.SizeInBytes;
         if (bufferSize < requiredSize)
         {
-            // Resize the buffer if necessary
             GL.BufferData(BufferTarget.ShaderStorageBuffer, requiredSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
         }
         
-        GL.BufferSubData(BufferTarget.ShaderStorageBuffer, 0, particlePositions.Count * Vector3.SizeInBytes, particlePositions.ToArray());
+        GL.BufferSubData(BufferTarget.ShaderStorageBuffer, 0, particles.Count * Particle.SizeInBytes, particles.ToArray());
         GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
         GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, ssbo);
 

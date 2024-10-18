@@ -9,7 +9,7 @@ namespace OpenTKGravitySim;
 
 public class Program
 {
-    private static readonly Universe universe = new(1000, 500.0f);
+    private static readonly Universe universe = new(1000, 1000.0f);
 
 
 
@@ -17,6 +17,7 @@ public class Program
     {
         using (SimWindow simWindow = new(1440, 900, universe))
         {
+            universe.GetParticlePositions();
             Parallel.Invoke(simWindow.Run, universe.Run);
         }
     }
