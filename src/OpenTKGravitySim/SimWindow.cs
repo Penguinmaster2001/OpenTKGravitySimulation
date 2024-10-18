@@ -22,7 +22,7 @@ internal class SimWindow : GameWindow
     private Quad windowQuad;
 
     private readonly Universe universe;
-    private List<float> particlePositions;
+    private List<Vector3> particlePositions;
 
     private int windowWidth;
     private int windowHeight;
@@ -34,7 +34,7 @@ internal class SimWindow : GameWindow
 
 
 
-    public SimWindow(int width, int height, Universe universe, object lockObject) : base(GameWindowSettings.Default, NativeWindowSettings.Default)
+    public SimWindow(int width, int height, Universe universe) : base(GameWindowSettings.Default, NativeWindowSettings.Default)
     {
         windowWidth = width;
         windowHeight = height;
@@ -44,7 +44,7 @@ internal class SimWindow : GameWindow
         camera = new(windowWidth, windowHeight, Vector3.Zero);
         shaderProgram = new();
 
-        windowQuad = new();
+        windowQuad = new(universe.NumParticles);
 
         this.universe = universe;
         particlePositions = [];
@@ -110,17 +110,17 @@ internal class SimWindow : GameWindow
         GL.ClearColor(0.0627f, 0.0666f, 0.1019f, 1.0f);
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-        int positionsLocation = shaderProgram.GetUniformLocation("positions");
         int windowSizeLocation = shaderProgram.GetUniformLocation("windowSize");
 
-        GL.Uniform3(positionsLocation, universe.NumParticles, particlePositions.ToArray());
         GL.Uniform2(windowSizeLocation, new Vector2(windowWidth, windowHeight));
+        CheckGLError();
         shaderProgram.SetUniform1Int("numParticles", universe.NumParticles);
+        CheckGLError();
         shaderProgram.SetCameraUniforms(camera);
         CheckGLError();
 
-        windowQuad.Render(shaderProgram);
-
+        windowQuad.Render(shaderProgram, particlePositions);
+        CheckGLError(true);
 
         Context.SwapBuffers();
     }
@@ -147,14 +147,17 @@ internal class SimWindow : GameWindow
     }
 
 
-
-    private static void CheckGLError()
+    int errorCheckNum = 0;
+    private void CheckGLError(bool reset = false)
     {
         ErrorCode error = GL.GetError();
         if (error != ErrorCode.NoError)
         {
-            Console.WriteLine($"OpenGL error: {error}");
+            Console.WriteLine($"OpenGL error {errorCheckNum}: {error}");
         }
+
+        if (reset) errorCheckNum = 0;
+        else errorCheckNum++;
     }
 }
 

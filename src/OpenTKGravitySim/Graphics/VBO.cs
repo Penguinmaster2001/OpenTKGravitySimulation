@@ -10,6 +10,8 @@ namespace OpenTKGravitySim.Graphics;
 
 internal class VBO<T> : GLBO where T : struct
 {
+    public VBO() : base(BufferTarget.ArrayBuffer) { }
+
     public VBO(List<T> data) : base(BufferTarget.ArrayBuffer)
     {
         Bind();

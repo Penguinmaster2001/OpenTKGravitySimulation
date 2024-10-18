@@ -41,7 +41,7 @@ internal class Universe
 
         Vector3 normal = Vector3.Cross(majorAxis, minorAxis);
         
-        if (MathHelper.ApproximatelyEqual(normal.LengthSquared, 1.0f, 2))
+        if (MathHelper.ApproximatelyEqual(normal.LengthSquared, 1.0f, 4))
         {
             Console.WriteLine("Major and minor axis of ellipse are not orthogonal");
             normal.Normalize();
@@ -95,7 +95,7 @@ internal class Universe
             Particle otherParticle = prevBuffer[otherParticleIndex];
 
             Vector3 direction = otherParticle.Position - particle.Position;
-            float distance = direction.Length;
+            float distance = MathF.Max(direction.Length, 0.5f);
             direction /= distance;
 
             gravForce += 100.0f * (otherParticle.Mass / (distance * distance)) * direction;
@@ -111,18 +111,9 @@ internal class Universe
 
 
 
-    public List<float> GetParticlePositions()
+    public List<Vector3> GetParticlePositions()
     {
-        List<float> particlePositions = new(NumParticles * 3);
-
-        List<Particle> prevBuffer = GetPrevParticleBuffer();
-        
-        for (int i = 0; i < NumParticles; i++)
-        {
-            particlePositions.Add(prevBuffer[i].Position.X);
-            particlePositions.Add(prevBuffer[i].Position.Y);
-            particlePositions.Add(prevBuffer[i].Position.Z);
-        }
+        List<Vector3> particlePositions = GetPrevParticleBuffer().Select(particle => particle.Position).ToList();
 
         return particlePositions;
     }

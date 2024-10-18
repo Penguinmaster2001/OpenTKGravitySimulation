@@ -47,7 +47,7 @@ internal class Camera
 
     private float nearClip = 0.1f;
     private float farClip = 5_000.0f;
-    private float sensitivity = 200.0f;
+    private float sensitivity = 100.0f;
     private float MaxPitch = 89.99f;
     private float MinPitch = -89.99f;
 
@@ -138,7 +138,7 @@ internal class Camera
         }
         else if (keyboardState.IsKeyDown(Keys.LeftShift))
         {
-            sensitivity += 50.0f * scrollAmount;
+            sensitivity += 100.0f * scrollAmount;
         }
         else
         {
