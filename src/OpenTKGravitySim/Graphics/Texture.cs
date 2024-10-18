@@ -4,7 +4,7 @@ using StbImageSharp;
 
 
 
-namespace OpenTKTutorial.Graphics;
+namespace OpenTKGravitySim.Graphics;
 
 
 

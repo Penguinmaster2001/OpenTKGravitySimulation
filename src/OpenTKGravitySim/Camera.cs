@@ -45,13 +45,13 @@ internal class Camera
         }
     }
 
-    private float nearClip = 1.0f;
+    private float nearClip = 0.1f;
     private float farClip = 10_000.0f;
-    private float sensitivity = 100.0f;
+    private float sensitivity = 200.0f;
     private float MaxPitch = 89.99f;
     private float MinPitch = -89.99f;
 
-    public float MovementSpeed { get; private set; }
+    public float MovementSpeed { get; private set; } = 10.0f;
     public Vector3 Velocity { get; private set; }
     private bool firstMove = true;
     public Vector3 mouseLastPos;
@@ -60,6 +60,8 @@ internal class Camera
 
     private Matrix4 _projectionMatrix;
     public Matrix4 ProjectionMatrix { get => _projectionMatrix; private set => _projectionMatrix = value; }
+
+    public Matrix4 InverseTransform => Matrix4.CreateTranslation(Position);
 
     // TODO: This should be an affine matrix
     public Vector3 Position { get; private set; }

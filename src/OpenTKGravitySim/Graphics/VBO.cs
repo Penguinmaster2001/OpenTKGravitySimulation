@@ -4,7 +4,7 @@ using OpenTK.Graphics.OpenGL4;
 
 
 
-namespace OpenTKTutorial.Graphics;
+namespace OpenTKGravitySim.Graphics;
 
 
 

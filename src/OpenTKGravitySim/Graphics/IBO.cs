@@ -2,7 +2,7 @@
 using System.Threading.Channels;
 using OpenTK.Graphics.OpenGL4;
 
-namespace OpenTKTutorial.Graphics;
+namespace OpenTKGravitySim.Graphics;
 
 
 

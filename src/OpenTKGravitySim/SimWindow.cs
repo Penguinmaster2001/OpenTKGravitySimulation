@@ -5,9 +5,11 @@ using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Mathematics;
 
-using OpenTKTutorial.Graphics;
+using OpenTKGravitySim.Graphics;
 
 using OpenTKGravitySim.Particles;
+using ErrorCode = OpenTK.Graphics.OpenGL4.ErrorCode;
+using OpenTK.Platform.Windows;
 
 
 
@@ -18,6 +20,7 @@ namespace OpenTKGravitySim;
 internal class SimWindow : GameWindow
 {
     private readonly Camera camera;
+    private Quad windowQuad;
 
     private readonly Universe universe;
 
@@ -25,8 +28,9 @@ internal class SimWindow : GameWindow
     private int windowHeight;
 
     private ShaderProgram? shaderProgram;
-    private string vertexShaderPath = "Shaders/default.vert";
-    private string fragmentShaderPath = "Shaders/default.frag";
+    private string vertexShaderPath = "Shaders/oneQuad.vert";
+    // private string fragmentShaderPath = "Shaders/oneQuad.frag";
+    private string fragmentShaderPath = "Shaders/raymarching.frag";
 
 
 
@@ -39,7 +43,9 @@ internal class SimWindow : GameWindow
 
         camera = new(windowWidth, windowHeight, Vector3.Zero);
 
-        universe = new(300, 1000.0f);
+        windowQuad = new();
+
+        universe = new(100, 1000.0f);
     }
 
 
@@ -60,7 +66,7 @@ internal class SimWindow : GameWindow
         base.OnLoad();
 
         shaderProgram = new(vertexShaderPath, fragmentShaderPath);
-
+        
         GL.Enable(EnableCap.DepthTest);
         // GL.FrontFace(FrontFaceDirection.Cw);
         // GL.Enable(EnableCap.CullFace);
@@ -73,7 +79,7 @@ internal class SimWindow : GameWindow
     {
         base.OnUnload();
 
-        universe.Delete();
+        windowQuad.Delete();
         shaderProgram?.Delete();
     }
 
@@ -90,9 +96,8 @@ internal class SimWindow : GameWindow
         {
             CursorState = CursorState == CursorState.Grabbed ? CursorState.Normal : CursorState.Grabbed;
         }
-
         camera.Update(keyboardState, mouseState, args);
-        universe.Update(camera, args);
+        universe.Update(args);
     }
 
 
@@ -102,8 +107,10 @@ internal class SimWindow : GameWindow
         base.OnRenderFrame(args);
 
         GL.ClearColor(0.0627f, 0.0666f, 0.1019f, 1.0f);
+        CheckGLError();
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
+        CheckGLError();
         // Transformation matrices
         Matrix4 model = Matrix4.Identity;
         Matrix4 view = camera.ViewMatrix;
@@ -111,15 +118,18 @@ internal class SimWindow : GameWindow
 
         if (shaderProgram is not null)
         {
-            int modelLocation = GL.GetUniformLocation(shaderProgram.ID, "model");
-            int viewLocation = GL.GetUniformLocation(shaderProgram.ID, "view");
-            int projectionLocation = GL.GetUniformLocation(shaderProgram.ID, "projection");
+            int positionsLocation = shaderProgram.GetUniformLocation("positions");
+            CheckGLError();
+            int windowSizeLocation = shaderProgram.GetUniformLocation("windowSize");
+            CheckGLError();
 
-            GL.UniformMatrix4(modelLocation, true, ref model);
-            GL.UniformMatrix4(viewLocation, true, ref view);
-            GL.UniformMatrix4(projectionLocation, true, ref projection);
+            GL.Uniform3(positionsLocation, universe.NumParticles, universe.ParticlePositions.ToArray());
+            CheckGLError();
+            GL.Uniform2(windowSizeLocation, new Vector2(windowWidth, windowHeight));
+            shaderProgram.SetUniform1Int("numParticles", universe.NumParticles);
+            shaderProgram.SetCameraUniforms(camera);
 
-            universe.Render(shaderProgram);
+            windowQuad.Render(shaderProgram);
         }
         else
         {
@@ -149,6 +159,18 @@ internal class SimWindow : GameWindow
         }
 
         return shaderSource;
+    }
+
+
+
+    private static void CheckGLError()
+    {
+        ErrorCode error = GL.GetError();
+        if (error != ErrorCode.NoError)
+        {
+            // throw new Exception($"OpenGL error: {error}");
+            Console.WriteLine($"OpenGL error: {error}");
+        }
     }
 }
 

@@ -3,7 +3,7 @@ using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 
-using OpenTKTutorial.Graphics;
+using OpenTKGravitySim.Graphics;
 
 
 
@@ -13,14 +13,11 @@ namespace OpenTKGravitySim.Particles;
 
 internal class Universe
 {
-    private List<Particle> particles;
-    private float timeStep;
-    private readonly List<Vector3> verts;
-    private readonly List<uint> indices;
+    public readonly List<Particle> particles;
 
-    private VAO vao;
-    private VBO<Vector3> vertexVbo;
-    private IBO ibo;
+    public List<float> ParticlePositions;
+    public int NumParticles { get; private set; }
+    private float timeStep;
 
 
 
@@ -30,63 +27,37 @@ internal class Universe
 
         Random random = new((int) DateTimeOffset.Now.UtcTicks);
 
-        particles = new(numParticles + 1);
-        verts = new(3 * numParticles);
-        indices = [];
+        particles = new(numParticles);
         
         float centerMass = 1_000_000.0f;
         Particle centerParticle = new(Vector3.Zero, Vector3.Zero, centerMass);
         particles.Add(centerParticle);
 
-        verts.AddRange([Vector3.Zero, Vector3.Zero, Vector3.Zero]);
-
-        for (int i = 0; i < numParticles; i++)
+        for (int i = 1; i < numParticles; i++)
         {
             Vector3 newPos = size * 2.0f * (new Vector3(random.NextSingle(), random.NextSingle(), random.NextSingle()) - new Vector3(0.5f));
             Vector3 velocity = MathF.Sqrt(0.5f * centerMass / newPos.Length) * Vector3.Cross(-newPos, Vector3.UnitY).Normalized();
             Particle newParticle = new(newPos, velocity, 500.0f * random.NextSingle());
 
-            verts.AddRange([Vector3.Zero, Vector3.Zero, Vector3.Zero]);
-
             particles.Add(newParticle);
         }
 
+        NumParticles = particles.Count;
 
-        vao = new();
-        vao.Bind();
 
-        vertexVbo = new(verts);
-        vertexVbo.Bind();
-        vao.LinkToVAO(0, 3, vertexVbo);
-        vertexVbo.UnBind();
-
-        vao.UnBind();
+        ParticlePositions = new(particles.Count * 3);
+        
+        for (int i = 0; i < particles.Count; i++)
+        {
+            ParticlePositions.Add(particles[i].Position.X);
+            ParticlePositions.Add(particles[i].Position.Y);
+            ParticlePositions.Add(particles[i].Position.Z);
+        }
     }
 
 
 
-    private List<Vector3> VertsFromParticle(Particle particle, Camera camera)
-    {
-        float radius = MathF.Cbrt(particle.Mass);
-        indices.AddRange([(uint)indices.Count, (uint)indices.Count + 1, (uint)indices.Count + 2]);
-
-        // Vector3 toCamera = (camera.Position - particle.Position).Normalized();
-        Vector3 bottomDir = camera.right;//Vector3.Cross(toCamera, camera.up).Normalized();
-        Vector3 upDir = camera.up;//Vector3.Cross(toCamera, bottomDir).Normalized();
-        Vector3 bottomLeft = (-radius * bottomDir) - (0.5f * MathF.Sqrt(3.0f) * radius * upDir);
-        Vector3 bottomRight = (radius * bottomDir) - (0.5f * MathF.Sqrt(3.0f) * radius * upDir);
-        Vector3 top = 0.5f * MathF.Sqrt(3.0f) * radius * upDir;
-
-        return [
-            particle.Position + bottomLeft,
-            particle.Position + bottomRight,
-            particle.Position + top
-        ];
-    }
-
-
-
-    public void Update(Camera camera, FrameEventArgs args)
+    public void Update(FrameEventArgs args)
     {
         float frameDelta = (float) args.Time;
 
@@ -115,43 +86,14 @@ internal class Universe
             }
         }
 
-        verts.Clear();
 
-        foreach (Particle particle in particles)
-        {
-            verts.AddRange(VertsFromParticle(particle, camera));
-        }
-
-        vertexVbo.SubData(verts);
-    }
-
-
-
-    public void Render(ShaderProgram shaderProgram)
-    {
-        vao.Bind();
-        if (ibo == null)
-        {
-            ibo = new IBO(indices);
-        }
-        else
-        {
-            ibo.Bind();
-        }
-
-        shaderProgram.Bind();
-        vao.Bind();
-        ibo.Bind();
+        ParticlePositions = new(particles.Count * 3);
         
-        GL.DrawElements(PrimitiveType.Points, indices.Count, DrawElementsType.UnsignedInt, 0);
-    }
-
-
-
-    public void Delete()
-    {
-        ibo.Delete();
-        vertexVbo.Delete();
-        vao.Delete();
+        for (int i = 0; i < particles.Count; i++)
+        {
+            ParticlePositions.Add(particles[i].Position.X);
+            ParticlePositions.Add(particles[i].Position.Y);
+            ParticlePositions.Add(particles[i].Position.Z);
+        }
     }
 }

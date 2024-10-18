@@ -4,17 +4,17 @@ using OpenTK.Mathematics;
 
 
 
-namespace OpenTKTutorial.Graphics;
+namespace OpenTKGravitySim.Graphics;
 
 
 
 internal class Quad
 {
     private readonly List<Vector3> verts = [
-        new( 0.5f,  0.5f,  0.0f), // Top Right
-        new(-0.5f,  0.5f,  0.0f), // Top Left
-        new(-0.5f, -0.5f,  0.0f), // Bottom Left
-        new( 0.5f, -0.5f,  0.0f)  // Bottom Right
+        new( 1.0f,  1.0f,  0.0f), // Top Right
+        new(-1.0f,  1.0f,  0.0f), // Top Left
+        new(-1.0f, -1.0f,  0.0f), // Bottom Left
+        new( 1.0f, -1.0f,  0.0f)  // Bottom Right
     ];
 
     private readonly List<uint> indices = [
