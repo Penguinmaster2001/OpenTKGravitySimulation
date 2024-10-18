@@ -54,22 +54,21 @@ internal class Camera
     public float MovementSpeed { get; private set; } = 10.0f;
     public Vector3 Velocity { get; private set; }
     private bool firstMove = true;
-    public Vector3 mouseLastPos;
+    public Vector2 mouseLastPos;
+    public float mouseSmoothFactor = 0.8f;
 
     public Matrix4 ViewMatrix => Matrix4.LookAt(Position, Position + forward, up);
 
     private Matrix4 _projectionMatrix;
     public Matrix4 ProjectionMatrix { get => _projectionMatrix; private set => _projectionMatrix = value; }
 
-    public Matrix4 InverseTransform => Matrix4.CreateTranslation(Position);
-
     // TODO: This should be an affine matrix
     public Vector3 Position { get; private set; }
     
     /// <summary>
-    /// Yaw, pitch, and roll in degrees
+    /// Yaw and pitch in degrees
     /// </summary>
-    public Vector3 RotationEuler;
+    public Vector2 RotationEuler;
     public Vector3 up = Vector3.UnitY;
     public Vector3 forward = Vector3.UnitZ;
     public Vector3 right = Vector3.UnitX;
@@ -83,7 +82,7 @@ internal class Camera
         UpdateProjectionMatrix();
         Velocity = Vector3.Zero;
         Position = position;
-        RotationEuler = new(0.0f, 0.0f, -90.0f);
+        RotationEuler = Vector2.Zero;
     }
 
 
@@ -139,23 +138,24 @@ internal class Camera
         }
         else
         {
-            MovementSpeed += 100.0f * scrollAmount;
+            MovementSpeed += 5.0f * MovementSpeed * scrollAmount;
         }
 
         Velocity = MovementSpeed * keyboardDirection;
 
-        Vector3 mouseCurPos = new(mouseState.X, -mouseState.Y, 0.0f);
-        if (firstMove || frameDelta > 0.05f)
+        Vector2 mouseCurPos = new(mouseState.X, -mouseState.Y);
+        if (firstMove || frameDelta > 0.1f)
         {
             mouseLastPos = mouseCurPos;
             firstMove = false;
         }
         else
         {
-            Vector3 mouseDelta = mouseCurPos - mouseLastPos;
-            mouseLastPos = mouseCurPos;
+            Vector2 smoothMousePos = Vector2.Lerp(mouseLastPos, mouseCurPos, mouseSmoothFactor);
+            Vector2 mouseDelta = smoothMousePos - mouseLastPos;
+            mouseLastPos = smoothMousePos;
 
-            RotationEuler += frameDelta * (FOV / 180.0f) *  sensitivity * mouseDelta;
+            RotationEuler += frameDelta * (FOV / 180.0f) * sensitivity * mouseDelta;
 
             if (RotationEuler.Y > MaxPitch) RotationEuler.Y = MaxPitch;
             else if (RotationEuler.Y < MinPitch) RotationEuler.Y = MinPitch;
