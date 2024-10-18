@@ -102,8 +102,8 @@ internal class Universe
         }
 
         Vector3 acceleration = gravForce / particle.Mass;
+        particle.Position += (timeStep * particle.Velocity) + (0.5f * timeStep * timeStep * acceleration);
         particle.Velocity += timeStep * acceleration;
-        particle.Position += timeStep * particle.Velocity;
 
         List<Particle> nextBuffer = GetNextParticleBuffer();
         nextBuffer[particleIndex] = particle;
@@ -115,13 +115,13 @@ internal class Universe
     {
         List<float> particlePositions = new(NumParticles * 3);
 
-        List<Particle> unusedBuffer = GetPrevParticleBuffer();
+        List<Particle> prevBuffer = GetPrevParticleBuffer();
         
         for (int i = 0; i < NumParticles; i++)
         {
-            particlePositions.Add(unusedBuffer[i].Position.X);
-            particlePositions.Add(unusedBuffer[i].Position.Y);
-            particlePositions.Add(unusedBuffer[i].Position.Z);
+            particlePositions.Add(prevBuffer[i].Position.X);
+            particlePositions.Add(prevBuffer[i].Position.Y);
+            particlePositions.Add(prevBuffer[i].Position.Z);
         }
 
         return particlePositions;
