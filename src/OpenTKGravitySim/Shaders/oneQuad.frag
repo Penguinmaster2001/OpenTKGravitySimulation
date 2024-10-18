@@ -9,12 +9,16 @@ uniform vec2 windowSize;
 uniform mat4 view;
 uniform mat4 projection;
 
+
+
 struct Particle
 {
     vec3 position;
     vec3 velocity;
     float mass;
 };
+
+
 
 layout(std430, binding = 0) buffer Particles {
     Particle particles[];
