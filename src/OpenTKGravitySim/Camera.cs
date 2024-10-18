@@ -51,11 +51,11 @@ internal class Camera
     private float MaxPitch = 89.99f;
     private float MinPitch = -89.99f;
 
-    public float MovementSpeed { get; private set; } = 10.0f;
+    public float MovementSpeed { get; private set; } = 100.0f;
     public Vector3 Velocity { get; private set; }
     private bool firstMove = true;
     public Vector2 mouseLastPos;
-    public float mouseSmoothFactor = 0.5f;
+    public float mouseSmoothFactor = 0.2f;
 
     public Matrix4 ViewMatrix => Matrix4.LookAt(Position, Position + forward, up);
 
@@ -136,6 +136,10 @@ internal class Camera
         {
             FOV += 50.0f * scrollAmount;
         }
+        else if (keyboardState.IsKeyDown(Keys.LeftShift))
+        {
+            sensitivity += 50.0f * scrollAmount;
+        }
         else
         {
             MovementSpeed += 5.0f * MovementSpeed * scrollAmount;
@@ -144,14 +148,14 @@ internal class Camera
         Velocity = MovementSpeed * keyboardDirection;
 
         Vector2 mouseCurPos = new(mouseState.X, -mouseState.Y);
-        if (firstMove || frameDelta > 0.1f)
+        if (firstMove)
         {
             mouseLastPos = mouseCurPos;
             firstMove = false;
         }
         else
         {
-            Vector2 smoothMousePos = Vector2.Lerp(mouseLastPos, mouseCurPos, mouseSmoothFactor);
+            Vector2 smoothMousePos = Vector2.Lerp(mouseLastPos, mouseCurPos, MathF.Min(mouseSmoothFactor, 1.0f));
             Vector2 mouseDelta = smoothMousePos - mouseLastPos;
             mouseLastPos = smoothMousePos;
 

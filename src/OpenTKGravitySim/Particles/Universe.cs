@@ -24,21 +24,41 @@ internal class Universe
         NumParticles = numParticles;
         Running = false;
 
+        particleBufferA = new(NumParticles);
+        particleBufferB = new(NumParticles);
+
+        AddParticlesEllipse(Vector3.Zero, Vector3.UnitX, 2.0f * Vector3.UnitZ, 1000.0f, size, 100.0f);
+    }
+
+
+
+    private void AddParticlesEllipse(Vector3 center, Vector3 majorAxis, Vector3 minorAxis, float aveMass, float scale = 100.0f, float maxDistanceOffPlane = 0.0f)
+    {
         Random random = new((int) DateTimeOffset.Now.UtcTicks);
 
-        particleBufferA = new(numParticles);
-        particleBufferB = new(numParticles);
-        
-        float centerMass = 1_000_000.0f;
-        Particle centerParticle = new(Vector3.Zero, Vector3.Zero, centerMass);
-        particleBufferA.Add(centerParticle);
-        particleBufferB.Add(centerParticle);
+        majorAxis.Normalize();
+        minorAxis.Normalize();
 
-        for (int i = 1; i < numParticles; i++)
+        Vector3 normal = Vector3.Cross(majorAxis, minorAxis);
+        
+        if (MathHelper.ApproximatelyEqual(normal.LengthSquared, 1.0f, 2))
         {
-            Vector3 newPos = size * 2.0f * (new Vector3(random.NextSingle(), random.NextSingle(), random.NextSingle()) - new Vector3(0.5f));
-            Vector3 velocity = MathF.Sqrt(0.5f * centerMass / newPos.Length) * Vector3.Cross(-newPos, Vector3.UnitY).Normalized();
-            Particle newParticle = new(newPos, velocity, 500.0f * random.NextSingle());
+            Console.WriteLine("Major and minor axis of ellipse are not orthogonal");
+            normal.Normalize();
+        }
+
+
+        for (int i = 0; i < NumParticles; i++)
+        {
+            float angle = random.NextSingle() * MathF.Tau;
+            float radius = (random.NextSingle() - 0.5f) * 2.0f * scale;
+            float offPlane = random.NextSingle() * maxDistanceOffPlane;
+
+            float mass = random.NextSingle() * 2.0f * aveMass;
+
+            Vector3 newPos = center + (MathF.Cos(angle) * radius * majorAxis) + (MathF.Sin(angle) * radius * minorAxis) + (offPlane * normal);
+            Vector3 velocity = new();// MathF.Sqrt(0.5f * centerMass / newPos.Length) * Vector3.Cross(-newPos, Vector3.UnitY).Normalized();
+            Particle newParticle = new(newPos, velocity, mass);
 
             particleBufferA.Add(newParticle);
             particleBufferB.Add(newParticle);

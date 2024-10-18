@@ -9,7 +9,7 @@ namespace OpenTKGravitySim;
 
 public class Program
 {
-    private static readonly Universe universe = new(1000, 1000.0f);
+    private static readonly Universe universe = new(1000, 500.0f);
     private static readonly object lockObject = new();
 
 
