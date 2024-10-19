@@ -13,6 +13,8 @@ internal class SpacialOctree
 {
     public readonly List<SpacialOctreeNode> Nodes;
     public int NumNodes => Nodes.Count;
+    public int NumInternalNodes => InternalNodeIndices.Count;
+    public int NumLeafNodes => NumNodes - NumInternalNodes;
     public float MaxSizeDistanceRatio;
 
     private readonly List<int> InternalNodeIndices;

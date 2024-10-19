@@ -31,7 +31,7 @@ internal class Quad
 
 
 
-    public Quad(int numParticles)
+    public Quad()
     {
         vao = new();
         vertVBO = new(verts);
@@ -49,22 +49,43 @@ internal class Quad
 
 
 
-    public void Render(ShaderProgram shaderProgram, List<Particle> particles)
+    public void Render(ShaderProgram shaderProgram, Particle[] particles)
     {
+        // foreach (Particle particle in particles)
+        // {
+        //     Console.WriteLine($"{particle.Position}, {particle.Velocity}, {particle.Mass}");
+        // }
+
         shaderProgram.Bind();
 
         GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssbo);
 
         GL.GetBufferParameter(BufferTarget.ShaderStorageBuffer, BufferParameterName.BufferSize, out int bufferSize);
-        int requiredSize = particles.Count * Particle.SizeInBytes;
+        int requiredSize = particles.Length * Particle.SizeInBytes;
         if (bufferSize < requiredSize)
         {
+            Console.WriteLine($"Buffer Size: {bufferSize}, Required Size: {requiredSize}");
             GL.BufferData(BufferTarget.ShaderStorageBuffer, requiredSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
         }
         
-        GL.BufferSubData(BufferTarget.ShaderStorageBuffer, 0, particles.Count * Particle.SizeInBytes, particles.ToArray());
-        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
+        GL.BufferSubData(BufferTarget.ShaderStorageBuffer, 0, particles.Length * Particle.SizeInBytes, particles);
+        // IntPtr ptr = GL.MapBuffer(BufferTarget.ShaderStorageBuffer, BufferAccess.ReadOnly);
+        // if (ptr != IntPtr.Zero)
+        // {
+        //     byte[] data = new byte[requiredSize];
+        //     System.Runtime.InteropServices.Marshal.Copy(ptr, data, 0, requiredSize);
+        //     GL.UnmapBuffer(BufferTarget.ShaderStorageBuffer);
+
+        //     // Process the data as needed, for example, print it
+        //     for (int i = 0; i < data.Length; i += Particle.SizeInBytes)
+        //     {
+        //         // Assuming Particle has a method to create an instance from a byte array
+        //         Particle particle = Particle.FromByteArray(data, i);
+        //         Console.WriteLine($"{particle.Position}, {particle.Velocity}, {particle.Mass}");
+        //     }
+        // }
         GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, ssbo);
+        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
 
 
         vao.Bind();

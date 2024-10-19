@@ -44,7 +44,7 @@ internal class SimWindow : GameWindow
         camera = new(windowWidth, windowHeight, Vector3.Zero);
         shaderProgram = new();
 
-        windowQuad = new(universe.NumParticles);
+        windowQuad = new();
 
         this.universe = universe;
         particlePositions = [];
@@ -117,7 +117,10 @@ internal class SimWindow : GameWindow
         shaderProgram.SetCameraUniforms(camera);
         CheckGLError();
 
-        windowQuad.Render(shaderProgram, universe.GetPrevParticleBuffer());
+        universe.ExternalReadingBuffer = true;
+        Particle[] particles = universe.Particles;
+        universe.ExternalReadingBuffer = false;
+        windowQuad.Render(shaderProgram, particles);
         CheckGLError(true);
 
         Context.SwapBuffers();

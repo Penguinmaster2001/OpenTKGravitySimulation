@@ -17,7 +17,6 @@ public class Program
     {
         using (SimWindow simWindow = new(1440, 900, universe))
         {
-            universe.GetParticlePositions();
             Parallel.Invoke(simWindow.Run, universe.Run);
         }
     }

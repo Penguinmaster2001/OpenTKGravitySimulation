@@ -30,6 +30,7 @@ void main()
 {
     float nearestZ = 1.01;
     float nearestDepth = 0.0;
+    vec3 nearestVel = vec3(0.0);
     mat4 toClipSpace = view * projection;
 
     for(int i = 0; i < numParticles; i++)
@@ -50,15 +51,16 @@ void main()
             float sqrDist = (dir.x * dir.x) + (dir.y * dir.y);
 
             float depth = 1.0 - (0.5 * (ndcPos.z + 1.0));
-            if (ndcPos.z < nearestZ && sqrDist < 5.0 * depth * depth * particle.mass)
+            if (ndcPos.z < nearestZ && sqrDist < 5.0 * depth * depth * pow(particle.mass, 0.66))
             {
                 nearestDepth = depth;
                 nearestZ = ndcPos.z;
+                nearestVel = particle.velocity;
             }
         }
     }
 
     if (nearestZ >= 1.0) discard;
 
-    FragColor = vec4(vec3(5000.0 * nearestDepth), 1.0);
+    FragColor = vec4(length(nearestVel) * 0.01, vec2(10000.0 * nearestDepth), 1.0);
 }
