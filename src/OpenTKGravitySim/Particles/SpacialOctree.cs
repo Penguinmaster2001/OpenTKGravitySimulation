@@ -1,6 +1,6 @@
 
 using System.Runtime.InteropServices;
-
+using OpenTK.Graphics.ES20;
 using OpenTK.Mathematics;
 
 
@@ -43,18 +43,18 @@ internal class SpacialOctree
         }
 
         // Find largest required bounding box
-        Vector3 min = particles[0].Position;
-        Vector3 max = particles[0].Position;
+        Vector3 min = particles[0].Position.Xyz;
+        Vector3 max = particles[0].Position.Xyz;
         for (int particleIndex = 1; particleIndex < particles.Count; particleIndex++)
         {
-            Vector3 position = particles[particleIndex].Position;
+            Vector3 position = particles[particleIndex].Position.Xyz;
             min = Vector3.ComponentMin(min, position);
             max = Vector3.ComponentMax(max, position);
         }
 
         Vector3 center = 0.5f * (min + max);
         (max - min).Deconstruct(out float xLen, out float yLen, out float zLen);
-        float size = Math.Min(Math.Min(xLen, yLen), zLen);
+        float size = Math.Max(Math.Max(xLen, yLen), zLen);
 
         SpacialOctreeNode root = new(center, size);
         Nodes.Add(root);
@@ -83,7 +83,7 @@ internal class SpacialOctree
             float sq_dist = direction.LengthSquared;
 
             // If the node is a leaf or the size - distance ratio is small enough, and the square distance is large enough (to ensure the particle doesn't affect itself and for numerical stability)
-            if ((node.IsLeaf || node.BoundingCube.Size * node.BoundingCube.Size < sq_dist * MaxSizeDistanceRatio * MaxSizeDistanceRatio) && sq_dist > 0.0025f)
+            if ((node.IsLeaf || node.IsEmpty || node.BoundingCube.Size * node.BoundingCube.Size < sq_dist * MaxSizeDistanceRatio * MaxSizeDistanceRatio) && sq_dist > 1.0f && !node.BoundingCube.IsInside(position))
             {
                 gravForce += (node.Mass / sq_dist) * direction.Normalized();
 
@@ -111,31 +111,34 @@ internal class SpacialOctree
         // Find leaf node
         while (Nodes[nodeIndex].IsInternal)
         {
-            nodeIndex = Nodes[nodeIndex].GetOctContainingIndex(particle.Position);
+            nodeIndex = Nodes[nodeIndex].GetOctContainingIndex(particle.Position.Xyz);
         }
 
         // Add particle if leaf node is empty
         if (Nodes[nodeIndex].IsEmpty)
         {
             SpacialOctreeNode emptyNode = Nodes[nodeIndex];
-            emptyNode.Mass = particle.Mass;
-            emptyNode.CenterOfMass = particle.Position;
+            emptyNode.Mass = particle.Mass.X;
+            emptyNode.CenterOfMass = particle.Position.Xyz;
             Nodes[nodeIndex] = emptyNode;
             return;
         }
 
         Vector3 nodeCenterOfMass = Nodes[nodeIndex].CenterOfMass;
         float nodeMass = Nodes[nodeIndex].Mass;
-        
-        // Subdivide nodes until the positions are in separate quadrants
-        int insertIndex = nodeIndex;
-        while (insertIndex == nodeIndex)
-        {
-            nodeIndex = insertIndex;
-            Subdivide(nodeIndex);
 
-            insertIndex = Nodes[nodeIndex].GetOctContainingIndex(particle.Position);
-            nodeIndex = Nodes[nodeIndex].GetOctContainingIndex(nodeCenterOfMass);
+        int insertIndex = nodeIndex;
+        if ((nodeCenterOfMass - particle.Position.Xyz).LengthSquared > 1.0f)
+        {
+            // Subdivide nodes until the positions are in separate quadrants
+            while (insertIndex == nodeIndex)
+            {
+                nodeIndex = insertIndex;
+                Subdivide(nodeIndex);
+
+                insertIndex = Nodes[nodeIndex].GetOctContainingIndex(particle.Position.Xyz);
+                nodeIndex = Nodes[nodeIndex].GetOctContainingIndex(nodeCenterOfMass);
+            }
         }
 
         // Insert masses into the new nodes
@@ -145,8 +148,8 @@ internal class SpacialOctree
         Nodes[nodeIndex] = node;
 
         SpacialOctreeNode insertNode = Nodes[insertIndex];
-        insertNode.Mass = particle.Mass;
-        insertNode.CenterOfMass = particle.Position;
+        insertNode.Mass = particle.Mass.X;
+        insertNode.CenterOfMass = particle.Position.Xyz;
         Nodes[insertIndex] = insertNode;
     }
 
@@ -172,7 +175,7 @@ internal class SpacialOctree
 
     private void CalculateMasses()
     {
-        for (int internalIndex = InternalNodeIndices.Count - 1; internalIndex > 0; internalIndex--)
+        for (int internalIndex = InternalNodeIndices.Count - 1; internalIndex >= 0; internalIndex--)
         {
             SpacialOctreeNode internalNode = Nodes[InternalNodeIndices[internalIndex]];
 
@@ -237,7 +240,7 @@ internal struct SpacialOctreeNode(AABC boundingCube, int nextIndex = 0, int firs
     public readonly bool IsLeaf => FirstChildIndex == 0;
     public readonly bool IsInternal => FirstChildIndex > 0;
     public readonly bool IsEmpty => Mass == 0.0f;
-    public int SizeInBytes = Marshal.SizeOf<SpacialOctreeNode>();
+    public static readonly int SizeInBytes = Marshal.SizeOf<SpacialOctreeNode>();
 }
 
 
@@ -256,11 +259,11 @@ internal readonly struct AABC(Vector3 center, float size)
 
     public bool IsInside(Vector3 point)
     {
-        float halfSize = 0.5f * Size;
+        float halfSize = 0.5f * Size + 0.01f;
         Vector3 localPoint = point - Center;
-        return (-halfSize < localPoint.X) && (localPoint.X < halfSize)
-            && (-halfSize < localPoint.Y) && (localPoint.Y < halfSize)
-            && (-halfSize < localPoint.Z) && (localPoint.Z < halfSize);
+        return Math.Abs(localPoint.X) <= halfSize
+            && Math.Abs(localPoint.Y) <= halfSize
+            && Math.Abs(localPoint.Z) <= halfSize;
     }
 
 
@@ -279,16 +282,23 @@ internal readonly struct AABC(Vector3 center, float size)
     public AABC[] SplitIntoOctants()
     {
         float octantSize = 0.5f * Size;
+        float octantCenterOffset = 0.25f * Size;
 
         return [
-            new(Center + (0.25f * Size * new Vector3( 1.0f,  1.0f,  1.0f)), octantSize),
-            new(Center + (0.25f * Size * new Vector3( 1.0f,  1.0f, -1.0f)), octantSize),
-            new(Center + (0.25f * Size * new Vector3( 1.0f, -1.0f,  1.0f)), octantSize),
-            new(Center + (0.25f * Size * new Vector3( 1.0f, -1.0f, -1.0f)), octantSize),
-            new(Center + (0.25f * Size * new Vector3(-1.0f,  1.0f,  1.0f)), octantSize),
-            new(Center + (0.25f * Size * new Vector3(-1.0f,  1.0f, -1.0f)), octantSize),
-            new(Center + (0.25f * Size * new Vector3(-1.0f, -1.0f,  1.0f)), octantSize),
-            new(Center + (0.25f * Size * new Vector3(-1.0f, -1.0f, -1.0f)), octantSize)
+            new(Center + (octantCenterOffset * new Vector3( 1.0f,  1.0f,  1.0f)), octantSize),
+            new(Center + (octantCenterOffset * new Vector3( 1.0f,  1.0f, -1.0f)), octantSize),
+            new(Center + (octantCenterOffset * new Vector3( 1.0f, -1.0f,  1.0f)), octantSize),
+            new(Center + (octantCenterOffset * new Vector3( 1.0f, -1.0f, -1.0f)), octantSize),
+            new(Center + (octantCenterOffset * new Vector3(-1.0f,  1.0f,  1.0f)), octantSize),
+            new(Center + (octantCenterOffset * new Vector3(-1.0f,  1.0f, -1.0f)), octantSize),
+            new(Center + (octantCenterOffset * new Vector3(-1.0f, -1.0f,  1.0f)), octantSize),
+            new(Center + (octantCenterOffset * new Vector3(-1.0f, -1.0f, -1.0f)), octantSize)
         ];
+    }
+
+
+    public readonly override string ToString()
+    {
+        return $"Center: {Center}, Size: {Size}, Bounds: {Center - 0.5f * Size * Vector3.One}, {Center + 0.5f * Size * Vector3.One}";
     }
 }

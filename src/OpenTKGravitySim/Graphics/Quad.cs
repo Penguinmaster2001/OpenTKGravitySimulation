@@ -68,7 +68,7 @@ internal class Quad
             GL.BufferData(BufferTarget.ShaderStorageBuffer, requiredSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
         }
         
-        GL.BufferSubData(BufferTarget.ShaderStorageBuffer, 0, particles.Length * Particle.SizeInBytes, particles);
+        GL.BufferSubData(BufferTarget.ShaderStorageBuffer, 0, requiredSize, particles);
         // IntPtr ptr = GL.MapBuffer(BufferTarget.ShaderStorageBuffer, BufferAccess.ReadOnly);
         // if (ptr != IntPtr.Zero)
         // {
@@ -85,7 +85,6 @@ internal class Quad
         //     }
         // }
         GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, ssbo);
-        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
 
 
         vao.Bind();
@@ -95,6 +94,7 @@ internal class Quad
 
         vao.UnBind();
         ibo.UnBind();
+        GL.BindBuffer(BufferTarget.ShaderStorageBuffer, 0);
     }
 
 

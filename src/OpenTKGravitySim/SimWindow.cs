@@ -22,14 +22,13 @@ internal class SimWindow : GameWindow
     private Quad windowQuad;
 
     private readonly Universe universe;
-    private List<Vector3> particlePositions;
 
     private int windowWidth;
     private int windowHeight;
 
     private ShaderProgram shaderProgram;
     private string vertexShaderPath = "Shaders/oneQuad.vert";
-    private string fragmentShaderPath = "Shaders/oneQuad.frag";
+    private string fragmentShaderPath = "Shaders/oneQuadFaster.frag";
     // private string fragmentShaderPath = "Shaders/raymarching.frag";
 
 
@@ -41,13 +40,12 @@ internal class SimWindow : GameWindow
 
         CenterWindow(new Vector2i(windowWidth, windowHeight));
 
-        camera = new(windowWidth, windowHeight, Vector3.Zero);
+        camera = new(windowWidth, windowHeight, new(-750.0f, 250.0f, 0.0f));
         shaderProgram = new();
 
         windowQuad = new();
 
         this.universe = universe;
-        particlePositions = [];
     }
 
 
@@ -112,18 +110,20 @@ internal class SimWindow : GameWindow
 
         GL.Uniform2(windowSizeLocation, new Vector2(windowWidth, windowHeight));
         CheckGLError();
-        shaderProgram.SetUniform1Int("numParticles", universe.NumParticles);
+        Particle[] particles = universe.Particles;
+        shaderProgram.SetUniform1Int("numParticles", particles.Length);
         CheckGLError();
         shaderProgram.SetCameraUniforms(camera);
         CheckGLError();
 
         universe.ExternalReadingBuffer = true;
-        Particle[] particles = universe.Particles;
         universe.ExternalReadingBuffer = false;
         windowQuad.Render(shaderProgram, particles);
         CheckGLError(true);
 
         Context.SwapBuffers();
+
+        Console.WriteLine($"Simulation time: {universe.SimulationTime}");
     }
 
 

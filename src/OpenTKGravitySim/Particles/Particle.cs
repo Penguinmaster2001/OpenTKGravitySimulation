@@ -9,15 +9,24 @@ namespace OpenTKGravitySim.Particles;
 
 
 [Serializable, StructLayout(LayoutKind.Sequential)]
-internal struct Particle(Vector3 initialPosition, Vector3 initialVelocity, float mass)
+internal struct Particle(Vector4 initialPosition, Vector4 initialVelocity, float mass)
 {
-    public Vector3 Position = initialPosition;
-    public Vector3 Velocity = initialVelocity;
-    public float Mass = mass;
+    public Vector4 Position = initialPosition;
+    public Vector4 Velocity = initialVelocity;
+    public Vector4 Mass = new(mass, 0.0f, 0.0f, 0.0f);
 
 
 
     public static int SizeInBytes => Marshal.SizeOf<Particle>();
+
+
+
+    public readonly bool IsValid()
+    {
+        return !float.IsNaN(Position.X) && !float.IsNaN(Position.Y) && !float.IsNaN(Position.Z) && !float.IsNaN(Position.W) &&
+               !float.IsNaN(Velocity.X) && !float.IsNaN(Velocity.Y) && !float.IsNaN(Velocity.Z) && !float.IsNaN(Velocity.W) &&
+               !float.IsNaN(    Mass.X) && !float.IsNaN(    Mass.Y) && !float.IsNaN(    Mass.Z) && !float.IsNaN(    Mass.W);
+    }
 
 
 
@@ -39,5 +48,12 @@ internal struct Particle(Vector3 initialPosition, Vector3 initialVelocity, float
         {
             Marshal.FreeHGlobal(ptr);
         }
+    }
+
+
+
+    public override readonly string ToString()
+    {
+        return $"Pos: {Position}, Vel: {Velocity}, Mass: {Mass}";
     }
 }

@@ -45,13 +45,13 @@ internal class Camera
         }
     }
 
-    private float nearClip = 0.1f;
-    private float farClip = 5_000.0f;
-    private float sensitivity = 100.0f;
+    private float nearClip = 1.0f;
+    private float farClip = 50_000.0f;
+    private float sensitivity = 10.0f;
     private float MaxPitch = 89.99f;
     private float MinPitch = -89.99f;
 
-    public float MovementSpeed { get; private set; } = 100.0f;
+    public float MovementSpeed { get; private set; } = 1000.0f;
     public Vector3 Velocity { get; private set; }
     private bool firstMove = true;
     public Vector2 mouseLastPos;
@@ -144,6 +144,7 @@ internal class Camera
         else
         {
             MovementSpeed += 5.0f * MovementSpeed * scrollAmount;
+            MovementSpeed = MathHelper.Clamp(MovementSpeed, 10.0f, 100_000.0f);
         }
 
         Velocity = MovementSpeed * keyboardDirection;
