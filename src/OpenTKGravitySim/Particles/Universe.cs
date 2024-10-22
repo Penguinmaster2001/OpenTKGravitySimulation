@@ -85,8 +85,8 @@ internal class Universe
     public void Run()
     {
         Running = true;
-        var stopwatch = new System.Diagnostics.Stopwatch();
-        stopwatch.Start();
+        // var stopwatch = new System.Diagnostics.Stopwatch();
+        // stopwatch.Start();
 
         while (Running)
         {
@@ -103,13 +103,13 @@ internal class Universe
             // while (ExternalReadingBuffer) { }
 
             SimulationTime += timeStep;
-            if (SimulationTime > 10.0f) Running = false;
+            // if (SimulationTime > 10.0f) Running = false;
 
             SwapBuffers();
         }
 
-        stopwatch.Stop();
-        Console.WriteLine($"Time for 10 seconds: {stopwatch.ElapsedMilliseconds} ms");
+        // stopwatch.Stop();
+        // Console.WriteLine($"Time for 10 seconds: {stopwatch.ElapsedMilliseconds} ms");
     }
 
 
@@ -119,7 +119,7 @@ internal class Universe
         List<Particle> prevBuffer = GetPrevParticleBuffer();
         Particle particle = prevBuffer[particleIndex];
         
-        Vector3 gravForce = 1000.0f * GetPrevTree().CalcGravForce(particle.Position.Xyz);
+        Vector3 gravForce = 1000.0f * GetPrevTree().GetGravForce(particle.Position.Xyz);
 
         // for (int otherParticleIndex = 0; otherParticleIndex < NumParticles; otherParticleIndex++)
         // {
@@ -140,7 +140,7 @@ internal class Universe
 
         if (!particle.IsValid())
         {
-            Console.WriteLine($"{particleIndex}: {particle}\n");
+            throw new Exception($"Invalid particle!! {particleIndex}: {particle}\n");
         }
 
         List<Particle> nextBuffer = GetNextParticleBuffer();

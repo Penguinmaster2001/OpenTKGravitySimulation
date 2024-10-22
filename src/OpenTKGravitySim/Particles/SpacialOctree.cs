@@ -69,14 +69,16 @@ internal class SpacialOctree
         }
 
         CalculateMasses();
-        // Console.WriteLine($"Depth: {CurrentDepth}, Nodes: {NumNodes}, Leaves: {NumLeafNodes}");
+        CalculateNodeForces();
     }
 
 
 
-    public Vector3 CalcGravForce(Vector3 position)
+    private Vector3 CalcGravForce(int nodeIndex)
     {
         Vector3 gravForce = Vector3.Zero;
+
+        Vector3 position = Nodes[nodeIndex].CenterOfMass;
 
         int nextIndex = 0;
         do
@@ -87,7 +89,7 @@ internal class SpacialOctree
             float sq_dist = direction.LengthSquared;
 
             // If the node is a leaf or the size - distance ratio is small enough, and the square distance is large enough (to ensure the particle doesn't affect itself and for numerical stability)
-            if ((node.IsLeaf || node.IsEmpty || node.BoundingCube.Size * node.BoundingCube.Size < sq_dist * MaxSizeDistanceRatio * MaxSizeDistanceRatio)/* && sq_dist > 1.0f*/ && !node.BoundingCube.IsInside(position))
+            if (nextIndex != nodeIndex && (node.IsLeaf || node.IsEmpty || node.BoundingCube.Size * node.BoundingCube.Size < sq_dist * MaxSizeDistanceRatio * MaxSizeDistanceRatio) && sq_dist > 1.0f)
             {
                 gravForce += (node.Mass / sq_dist) * direction.Normalized();
 
@@ -103,6 +105,22 @@ internal class SpacialOctree
         while (nextIndex > 0);
 
         return gravForce;
+    }
+
+
+
+    public Vector3 GetGravForce(Vector3 position)
+    {
+        // Start at root
+        int nodeIndex = 0;
+
+        // Find leaf node
+        while (Nodes[nodeIndex].IsInternal)
+        {
+            nodeIndex = Nodes[nodeIndex].GetOctContainingIndex(position);
+        }
+
+        return Nodes[nodeIndex].GravForce;
     }
 
 
@@ -224,6 +242,22 @@ internal class SpacialOctree
 
 
 
+    private void CalculateNodeForces()
+    {
+        for (int nodeIndex = 0; nodeIndex < NumNodes; nodeIndex++)
+        {
+            SpacialOctreeNode node = Nodes[nodeIndex];
+
+            if (node.IsInternal) continue;
+
+            node.GravForce = CalcGravForce(nodeIndex);
+
+            Nodes[nodeIndex] = node;
+        }
+    }
+
+
+
     public void Clear()
     {
         Nodes.Clear();
@@ -237,6 +271,7 @@ internal struct SpacialOctreeNode(AABC boundingCube, int nextIndex = 0, int firs
 {
     public AABC BoundingCube = boundingCube;
     public Vector3 CenterOfMass = boundingCube.Center;
+    public Vector3 GravForce;
     public float Mass = mass;
 
     /// <summary>

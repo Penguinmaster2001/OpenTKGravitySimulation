@@ -11,3 +11,13 @@ Depth limit 10, 10_000 particles
 Time for 10 seconds: 7058 ms
 Time for 10 seconds: 5904 ms
 Time for 10 seconds: 8101 ms
+
+Precomputing Grav force, not using
+Time for 10 seconds: 4290 ms
+Time for 10 seconds: 7372 ms
+Time for 10 seconds: 5945 ms
+
+Precomputing Grav force, using
+Time for 10 seconds: 665 ms
+Time for 10 seconds: 838 ms
+Time for 10 seconds: 722 ms
