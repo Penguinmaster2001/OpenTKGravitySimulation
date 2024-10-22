@@ -1,0 +1,13 @@
+
+No depth limit, printing depth and node count
+Time for 10 seconds: 12956 ms
+
+No depth limit, 10_000 particles
+Time for 10 seconds: 11812 ms
+Time for 10 seconds: 13797 ms
+Time for 10 seconds: 12798 ms
+
+Depth limit 10, 10_000 particles
+Time for 10 seconds: 7058 ms
+Time for 10 seconds: 5904 ms
+Time for 10 seconds: 8101 ms

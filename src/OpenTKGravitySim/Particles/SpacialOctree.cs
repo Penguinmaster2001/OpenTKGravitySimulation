@@ -1,6 +1,7 @@
 
 using System.Runtime.InteropServices;
-using OpenTK.Graphics.ES20;
+
+
 using OpenTK.Mathematics;
 
 
@@ -16,17 +17,19 @@ internal class SpacialOctree
     public int NumInternalNodes => InternalNodeIndices.Count;
     public int NumLeafNodes => NumNodes - NumInternalNodes;
     public float MaxSizeDistanceRatio;
+    public int MaxDepth;
 
     private readonly List<int> InternalNodeIndices;
 
 
 
-    public SpacialOctree(float maxSizeDistanceRatio)
+    public SpacialOctree(float maxSizeDistanceRatio, int maxDepth)
     {
         Nodes = [];
         InternalNodeIndices = [];
 
         MaxSizeDistanceRatio = maxSizeDistanceRatio;
+        MaxDepth = maxDepth;
     }
 
 
@@ -66,6 +69,7 @@ internal class SpacialOctree
         }
 
         CalculateMasses();
+        // Console.WriteLine($"Depth: {CurrentDepth}, Nodes: {NumNodes}, Leaves: {NumLeafNodes}");
     }
 
 
@@ -83,7 +87,7 @@ internal class SpacialOctree
             float sq_dist = direction.LengthSquared;
 
             // If the node is a leaf or the size - distance ratio is small enough, and the square distance is large enough (to ensure the particle doesn't affect itself and for numerical stability)
-            if ((node.IsLeaf || node.IsEmpty || node.BoundingCube.Size * node.BoundingCube.Size < sq_dist * MaxSizeDistanceRatio * MaxSizeDistanceRatio) && sq_dist > 1.0f && !node.BoundingCube.IsInside(position))
+            if ((node.IsLeaf || node.IsEmpty || node.BoundingCube.Size * node.BoundingCube.Size < sq_dist * MaxSizeDistanceRatio * MaxSizeDistanceRatio)/* && sq_dist > 1.0f*/ && !node.BoundingCube.IsInside(position))
             {
                 gravForce += (node.Mass / sq_dist) * direction.Normalized();
 
@@ -107,11 +111,13 @@ internal class SpacialOctree
     {
         // Start at root
         int nodeIndex = 0;
+        int depth = 0;
 
         // Find leaf node
-        while (Nodes[nodeIndex].IsInternal)
+        while (depth < MaxDepth && Nodes[nodeIndex].IsInternal)
         {
             nodeIndex = Nodes[nodeIndex].GetOctContainingIndex(particle.Position.Xyz);
+            depth++;
         }
 
         // Add particle if leaf node is empty
@@ -128,29 +134,41 @@ internal class SpacialOctree
         float nodeMass = Nodes[nodeIndex].Mass;
 
         int insertIndex = nodeIndex;
-        if ((nodeCenterOfMass - particle.Position.Xyz).LengthSquared > 1.0f)
+        // Subdivide nodes until the positions are in separate quadrants
+        while (insertIndex == nodeIndex && depth < MaxDepth)
         {
-            // Subdivide nodes until the positions are in separate quadrants
-            while (insertIndex == nodeIndex)
-            {
-                nodeIndex = insertIndex;
-                Subdivide(nodeIndex);
+            nodeIndex = insertIndex;
+            Subdivide(nodeIndex);
 
-                insertIndex = Nodes[nodeIndex].GetOctContainingIndex(particle.Position.Xyz);
-                nodeIndex = Nodes[nodeIndex].GetOctContainingIndex(nodeCenterOfMass);
-            }
+            insertIndex = Nodes[nodeIndex].GetOctContainingIndex(particle.Position.Xyz);
+            nodeIndex = Nodes[nodeIndex].GetOctContainingIndex(nodeCenterOfMass);
+            depth++;
         }
 
         // Insert masses into the new nodes
-        SpacialOctreeNode node = Nodes[nodeIndex];
-        node.Mass = nodeMass;
-        node.CenterOfMass = nodeCenterOfMass;
-        Nodes[nodeIndex] = node;
+        InsertIntoNode(nodeIndex, nodeCenterOfMass, nodeMass);
+        InsertIntoNode(insertIndex, particle.Position.Xyz, particle.Mass.X);
+    }
 
-        SpacialOctreeNode insertNode = Nodes[insertIndex];
-        insertNode.Mass = particle.Mass.X;
-        insertNode.CenterOfMass = particle.Position.Xyz;
-        Nodes[insertIndex] = insertNode;
+
+
+    private void InsertIntoNode(int nodeIndex, Vector3 centerOfMass, float mass)
+    {
+        SpacialOctreeNode insertNode = Nodes[nodeIndex];
+
+        if (insertNode.IsEmpty)
+        {
+            insertNode.CenterOfMass = centerOfMass;
+            insertNode.Mass = mass;
+        }
+        else
+        {
+            insertNode.CenterOfMass = (insertNode.Mass * insertNode.CenterOfMass) + (mass * centerOfMass);
+            insertNode.Mass += mass;
+            insertNode.CenterOfMass /= insertNode.Mass;
+        }
+
+        Nodes[nodeIndex] = insertNode;
     }
 
 

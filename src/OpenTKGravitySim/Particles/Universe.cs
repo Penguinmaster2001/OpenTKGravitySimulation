@@ -15,7 +15,7 @@ internal class Universe
     public readonly List<Particle> particleBufferB;
     public bool UseParticleBufferA = true;
     public bool ExternalReadingBuffer = false;
-    public Particle[] Particles => GetPrevParticleBuffer().Take(Math.Min(NumParticles, 5000)).ToArray();
+    public Particle[] Particles => GetPrevParticleBuffer().Take(Math.Min(NumParticles, 1000)).ToArray();
     public int NumParticles { get; private set; }
     private float timeStep;
     public bool Running;
@@ -28,8 +28,8 @@ internal class Universe
         this.timeStep = timeStep;
         Running = false;
 
-        octreeA = new(1.0f);
-        octreeB = new(1.0f);
+        octreeA = new(1.0f, 10);
+        octreeB = new(1.0f, 10);
 
         particleBufferA = new(NumParticles);
         particleBufferB = new(NumParticles);
@@ -85,6 +85,8 @@ internal class Universe
     public void Run()
     {
         Running = true;
+        var stopwatch = new System.Diagnostics.Stopwatch();
+        stopwatch.Start();
 
         while (Running)
         {
@@ -101,9 +103,13 @@ internal class Universe
             // while (ExternalReadingBuffer) { }
 
             SimulationTime += timeStep;
+            if (SimulationTime > 10.0f) Running = false;
 
             SwapBuffers();
         }
+
+        stopwatch.Stop();
+        Console.WriteLine($"Time for 10 seconds: {stopwatch.ElapsedMilliseconds} ms");
     }
 
 
