@@ -85,8 +85,8 @@ internal class Universe
     public void Run()
     {
         Running = true;
-        var stopwatch = new System.Diagnostics.Stopwatch();
-        stopwatch.Start();
+        // var stopwatch = new System.Diagnostics.Stopwatch();
+        // stopwatch.Start();
 
         while (Running)
         {
@@ -103,13 +103,13 @@ internal class Universe
             // while (ExternalReadingBuffer) { }
 
             SimulationTime += timeStep;
-            if (SimulationTime > 10.0f) Running = false;
+            // if (SimulationTime > 10.0f) Running = false;
 
             SwapBuffers();
         }
 
-        stopwatch.Stop();
-        Console.WriteLine($"Time for 10 seconds: {stopwatch.ElapsedMilliseconds} ms");
+        // stopwatch.Stop();
+        // Console.WriteLine($"Time for 10 seconds: {stopwatch.ElapsedMilliseconds} ms");
     }
 
 
@@ -135,6 +135,7 @@ internal class Universe
         // }
 
         Vector3 acceleration = gravForce / particle.Mass.X;
+
         particle.Position += new Vector4((timeStep * particle.Velocity.Xyz) + (0.5f * timeStep * timeStep * acceleration), 0.0f);
         particle.Velocity += new Vector4(timeStep * acceleration, 0.0f);
 
@@ -145,6 +146,12 @@ internal class Universe
 
         List<Particle> nextBuffer = GetNextParticleBuffer();
         nextBuffer[particleIndex] = particle;
+
+
+        (Vector3, Vector3) Derivatives(Vector3 position, Vector3 velocity)
+        {
+            return (new(), new());
+        }
     }
 
 

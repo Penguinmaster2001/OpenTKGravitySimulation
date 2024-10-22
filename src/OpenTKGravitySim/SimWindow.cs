@@ -123,7 +123,7 @@ internal class SimWindow : GameWindow
 
         Context.SwapBuffers();
 
-        Console.WriteLine($"Simulation time: {universe.SimulationTime}");
+        // Console.WriteLine($"Simulation time: {universe.SimulationTime}");
     }
 
 
