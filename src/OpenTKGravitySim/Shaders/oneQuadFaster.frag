@@ -54,7 +54,7 @@ void main()
             float sqrDist = (dir.x * dir.x) + (dir.y * dir.y);
 
             float depth = 1.0 - (0.5 * (ndcPos.z + 1.0));
-            if (sqrDist < depth * depth * (pow(0.1 * particle.mass.x, 0.66)))
+            if (sqrDist < depth * depth * (pow(0.05 * particle.mass.x, 0.66)))
             {
                 FragColor = vec4((particle.velocity.xyz * 0.01f) + vec3(0.5), 1.0);
                 return;
