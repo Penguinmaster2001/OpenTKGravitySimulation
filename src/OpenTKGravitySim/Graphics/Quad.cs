@@ -1,11 +1,34 @@
 
+using System.Runtime.InteropServices;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-using OpenTKGravitySim.Particles;
 
 
 
 namespace OpenTKGravitySim.Graphics;
+
+
+
+public interface IRenderable
+{
+    RenderObject ToRenderObject();
+}
+
+
+
+[Serializable]
+public struct RenderObject(Vector4 position, Vector4 velocity, Vector4 attributes) : IRenderable
+{
+    public Vector4 Position = position;
+    public Vector4 Velocity = velocity;
+    public Vector4 Attributes = attributes;
+    public static int SizeInBytes => Marshal.SizeOf<RenderObject>();
+
+    public readonly RenderObject ToRenderObject()
+    {
+        return this;
+    }
+}
 
 
 
@@ -27,12 +50,14 @@ internal class Quad
     private readonly VBO<Vector3> vertVBO;
     private readonly IBO ibo;
     private int ssbo;
+    private List<RenderObject> renderObjects;
 
 
 
 
     public Quad()
     {
+        renderObjects = new(1000);
         vao = new();
         vertVBO = new(verts);
 
@@ -49,26 +74,36 @@ internal class Quad
 
 
 
-    public void Render(ShaderProgram shaderProgram, Particle[] particles)
+    public void Render<T>(ShaderProgram shaderProgram, List<T> renderables) where T : IRenderable
     {
         // foreach (Particle particle in particles)
         // {
         //     Console.WriteLine($"{particle.Position}, {particle.Velocity}, {particle.Mass}");
         // }
+        int renderObjectCount = Math.Min(1_000, renderables.Count);
+        renderObjects.Clear();
+        for (uint i = 0; i < renderObjectCount; i++)
+        {
+            RenderObject renderObject = renderables[(int) ((i * 110503u) % (uint) renderables.Count)].ToRenderObject();
+            renderObjects.Add(renderObject);
+        }
+
+        // RenderObject[] renderObjects = renderables.Take(renderObjectCount).Select(renderable => renderable.ToRenderObject()).ToArray();
+        int requiredSize = renderObjectCount * RenderObject.SizeInBytes;
 
         shaderProgram.Bind();
+        shaderProgram.SetUniform1Int("numRenderables", renderObjectCount);
 
         GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssbo);
 
         GL.GetBufferParameter(BufferTarget.ShaderStorageBuffer, BufferParameterName.BufferSize, out int bufferSize);
-        int requiredSize = particles.Length * Particle.SizeInBytes;
         if (bufferSize < requiredSize)
         {
             Console.WriteLine($"Buffer Size: {bufferSize}, Required Size: {requiredSize}");
             GL.BufferData(BufferTarget.ShaderStorageBuffer, requiredSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
         }
         
-        GL.BufferSubData(BufferTarget.ShaderStorageBuffer, 0, requiredSize, particles);
+        GL.BufferSubData(BufferTarget.ShaderStorageBuffer, 0, requiredSize, renderObjects.ToArray());
         // IntPtr ptr = GL.MapBuffer(BufferTarget.ShaderStorageBuffer, BufferAccess.ReadOnly);
         // if (ptr != IntPtr.Zero)
         // {

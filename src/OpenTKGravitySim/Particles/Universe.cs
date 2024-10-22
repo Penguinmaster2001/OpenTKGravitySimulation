@@ -16,6 +16,7 @@ internal class Universe
     public bool UseParticleBufferA = true;
     public bool ExternalReadingBuffer = false;
     public Particle[] Particles => GetPrevParticleBuffer().Take(Math.Min(NumParticles, 1000)).ToArray();
+    public List<SpacialOctreeNode> LeafNodes => GetPrevTree().Leaves.ToList();
     public int NumParticles { get; private set; }
     private float timeStep;
     public bool Running;
@@ -37,7 +38,7 @@ internal class Universe
         // particleBufferA.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
         // particleBufferB.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
         // AddParticlesEllipse(numParticles, Vector3.Zero, 2.0f * Vector3.UnitZ, Vector3.UnitY, 10.0f, size, size / 5.0f);
-        AddParticlesCluster(numParticles, 10, Vector3.Zero, 10.0f, 1.0f, 10.0f, size, size / 100.0f);
+        AddParticlesCluster(numParticles, 3, Vector3.Zero, 100.0f, 1.0f, 10.0f, size, size / 4.0f);
 
         // particleBufferA.Add(new(new(200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 0.0f, 20.0f, 0.0f), 10.0f));
         // // particleBufferA.Add(new(new(-200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 20.0f, 0.0f, 0.0f), 10.0f));

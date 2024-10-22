@@ -28,7 +28,7 @@ internal class SimWindow : GameWindow
 
     private ShaderProgram shaderProgram;
     private string vertexShaderPath = "Shaders/oneQuad.vert";
-    private string fragmentShaderPath = "Shaders/oneQuadFaster.frag";
+    private string fragmentShaderPath = "Shaders/RenderableRenderer.frag";
     // private string fragmentShaderPath = "Shaders/raymarching.frag";
 
 
@@ -110,15 +110,13 @@ internal class SimWindow : GameWindow
 
         GL.Uniform2(windowSizeLocation, new Vector2(windowWidth, windowHeight));
         CheckGLError();
-        Particle[] particles = universe.Particles;
-        shaderProgram.SetUniform1Int("numParticles", particles.Length);
         CheckGLError();
         shaderProgram.SetCameraUniforms(camera);
         CheckGLError();
 
         universe.ExternalReadingBuffer = true;
         universe.ExternalReadingBuffer = false;
-        windowQuad.Render(shaderProgram, particles);
+        windowQuad.Render(shaderProgram, universe.LeafNodes);
         CheckGLError(true);
 
         Context.SwapBuffers();

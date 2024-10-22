@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 
 using OpenTK.Mathematics;
+using OpenTKGravitySim.Graphics;
 
 
 
@@ -16,6 +17,7 @@ internal class SpacialOctree
     public int NumNodes => Nodes.Count;
     public int NumInternalNodes => InternalNodeIndices.Count;
     public int NumLeafNodes => NumNodes - NumInternalNodes;
+    public readonly List<SpacialOctreeNode> Leaves;
     public float MaxSizeDistanceRatio;
     public int MaxDepth;
 
@@ -26,6 +28,7 @@ internal class SpacialOctree
     public SpacialOctree(float maxSizeDistanceRatio, int maxDepth)
     {
         Nodes = [];
+        Leaves = [];
         InternalNodeIndices = [];
 
         MaxSizeDistanceRatio = maxSizeDistanceRatio;
@@ -87,9 +90,9 @@ internal class SpacialOctree
             float sq_dist = direction.LengthSquared;
 
             // If the node is a leaf or the size - distance ratio is small enough, and the square distance is large enough (to ensure the particle doesn't affect itself and for numerical stability)
-            if ((node.IsLeaf || node.IsEmpty || node.BoundingCube.Size * node.BoundingCube.Size < sq_dist * MaxSizeDistanceRatio * MaxSizeDistanceRatio)/* && sq_dist > 1.0f*/ && !node.BoundingCube.IsInside(position))
+            if ((node.IsLeaf || node.IsEmpty || node.BoundingCube.Size * node.BoundingCube.Size < sq_dist * MaxSizeDistanceRatio * MaxSizeDistanceRatio) && sq_dist > 1.0f)
             {
-                gravForce += direction.Normalized() * node.Mass / (sq_dist + 0.001f);
+                gravForce += direction.Normalized() * node.Mass / sq_dist;
 
                 // We can move on to the next node
                 nextIndex = node.NextIndex;
@@ -226,6 +229,16 @@ internal class SpacialOctree
             internalNode.Mass = mass;
             internalNode.CenterOfMass = centerOfMass;
             Nodes[InternalNodeIndices[internalIndex]] = internalNode;
+
+            for (int i = 0; i < 8; i++)
+            {
+                SpacialOctreeNode childNode = Nodes[internalNode.FirstChildIndex + i];
+
+                if (childNode.IsLeaf && !childNode.IsEmpty)
+                {
+                    Leaves.Add(childNode);
+                }
+            }
         }
     }
 
@@ -233,6 +246,7 @@ internal class SpacialOctree
 
     public void Clear()
     {
+        Leaves.Clear();
         Nodes.Clear();
         InternalNodeIndices.Clear();
     }
@@ -240,7 +254,7 @@ internal class SpacialOctree
 
 
 
-internal struct SpacialOctreeNode(AABC boundingCube, int nextIndex = 0, int firstChildIndex = 0, float mass = 0.0f)
+public struct SpacialOctreeNode(AABC boundingCube, int nextIndex = 0, int firstChildIndex = 0, float mass = 0.0f) : IRenderable
 {
     public AABC BoundingCube = boundingCube;
     public Vector3 CenterOfMass = boundingCube.Center;
@@ -266,6 +280,17 @@ internal struct SpacialOctreeNode(AABC boundingCube, int nextIndex = 0, int firs
     public readonly bool IsInternal => FirstChildIndex > 0;
     public readonly bool IsEmpty => Mass == 0.0f;
     public static readonly int SizeInBytes = Marshal.SizeOf<SpacialOctreeNode>();
+
+
+
+    public RenderObject ToRenderObject()
+    {
+        Vector4 position = new(CenterOfMass, 1.0f);
+        Vector4 velocity = Vector4.Zero;
+        Vector4 attributes = new(Mass, BoundingCube.Size, 0.0f, 0.0f);
+
+        return new(position, velocity, attributes);
+    }
 }
 
 
@@ -275,7 +300,7 @@ internal struct SpacialOctreeNode(AABC boundingCube, int nextIndex = 0, int firs
 /// </summary>
 /// <param name="size"></param>
 /// <param name="center"></param>
-internal readonly struct AABC(Vector3 center, float size)
+public readonly struct AABC(Vector3 center, float size)
 {
     public readonly Vector3 Center = center;
     public readonly float Size = size;
