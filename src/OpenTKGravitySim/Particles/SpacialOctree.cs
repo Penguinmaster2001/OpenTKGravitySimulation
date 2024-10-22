@@ -49,11 +49,11 @@ internal class SpacialOctree
         }
 
         // Find largest required bounding box
-        Vector3 min = particles[0].Position.Xyz;
-        Vector3 max = particles[0].Position.Xyz;
+        Vector3 min = particles[0].Position;
+        Vector3 max = particles[0].Position;
         for (int particleIndex = 1; particleIndex < particles.Count; particleIndex++)
         {
-            Vector3 position = particles[particleIndex].Position.Xyz;
+            Vector3 position = particles[particleIndex].Position;
             min = Vector3.ComponentMin(min, position);
             max = Vector3.ComponentMax(max, position);
         }
@@ -90,7 +90,7 @@ internal class SpacialOctree
             float sq_dist = direction.LengthSquared;
 
             // If the node is a leaf or the size - distance ratio is small enough, and the square distance is large enough (to ensure the particle doesn't affect itself and for numerical stability)
-            if ((node.IsLeaf || node.IsEmpty || node.BoundingCube.Size * node.BoundingCube.Size < sq_dist * MaxSizeDistanceRatio * MaxSizeDistanceRatio) && sq_dist > 1.0f)
+            if ((node.IsLeaf || node.IsEmpty || node.BoundingCube.Size * node.BoundingCube.Size < sq_dist * MaxSizeDistanceRatio * MaxSizeDistanceRatio) && sq_dist > 0.01f)
             {
                 gravForce += direction.Normalized() * node.Mass / sq_dist;
 
@@ -102,15 +102,15 @@ internal class SpacialOctree
             {
                 nextIndex = node.FirstChildIndex;
             }
+
+            if (gravForce.X != 0.0f && !float.IsNormal(gravForce.X)
+            || gravForce.Y != 0.0f && !float.IsNormal(gravForce.Y)
+            || gravForce.Z != 0.0f && !float.IsNormal(gravForce.Z))
+            {
+                throw new Exception($"Bad grav force");
+            }
         }
         while (nextIndex > 0);
-
-        if (gravForce.X != 0.0f && !float.IsNormal(gravForce.X)
-         || gravForce.Y != 0.0f && !float.IsNormal(gravForce.Y)
-         || gravForce.Z != 0.0f && !float.IsNormal(gravForce.Z))
-        {
-            throw new Exception($"Bad grav force");
-        }
 
         return gravForce;
     }
@@ -126,7 +126,7 @@ internal class SpacialOctree
         // Find leaf node
         while (depth < MaxDepth && Nodes[nodeIndex].IsInternal)
         {
-            nodeIndex = Nodes[nodeIndex].GetOctContainingIndex(particle.Position.Xyz);
+            nodeIndex = Nodes[nodeIndex].GetOctContainingIndex(particle.Position);
             depth++;
         }
 
@@ -134,8 +134,8 @@ internal class SpacialOctree
         if (Nodes[nodeIndex].IsEmpty)
         {
             SpacialOctreeNode emptyNode = Nodes[nodeIndex];
-            emptyNode.Mass = particle.Mass.X;
-            emptyNode.CenterOfMass = particle.Position.Xyz;
+            emptyNode.Mass = particle.Mass;
+            emptyNode.CenterOfMass = particle.Position;
             Nodes[nodeIndex] = emptyNode;
             return;
         }
@@ -150,14 +150,14 @@ internal class SpacialOctree
             nodeIndex = insertIndex;
             Subdivide(nodeIndex);
 
-            insertIndex = Nodes[nodeIndex].GetOctContainingIndex(particle.Position.Xyz);
+            insertIndex = Nodes[nodeIndex].GetOctContainingIndex(particle.Position);
             nodeIndex = Nodes[nodeIndex].GetOctContainingIndex(nodeCenterOfMass);
             depth++;
         }
 
         // Insert masses into the new nodes
         InsertIntoNode(nodeIndex, nodeCenterOfMass, nodeMass);
-        InsertIntoNode(insertIndex, particle.Position.Xyz, particle.Mass.X);
+        InsertIntoNode(insertIndex, particle.Position, particle.Mass);
     }
 
 
@@ -286,7 +286,7 @@ public struct SpacialOctreeNode(AABC boundingCube, int nextIndex = 0, int firstC
     public RenderObject ToRenderObject()
     {
         Vector4 position = new(CenterOfMass, 1.0f);
-        Vector4 velocity = Vector4.Zero;
+        Vector4 velocity = new(BoundingCube.Center, 1.0f);
         Vector4 attributes = new(Mass, BoundingCube.Size, 0.0f, 0.0f);
 
         return new(position, velocity, attributes);
