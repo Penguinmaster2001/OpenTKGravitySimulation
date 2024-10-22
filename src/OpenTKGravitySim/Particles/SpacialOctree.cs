@@ -89,7 +89,7 @@ internal class SpacialOctree
             // If the node is a leaf or the size - distance ratio is small enough, and the square distance is large enough (to ensure the particle doesn't affect itself and for numerical stability)
             if ((node.IsLeaf || node.IsEmpty || node.BoundingCube.Size * node.BoundingCube.Size < sq_dist * MaxSizeDistanceRatio * MaxSizeDistanceRatio)/* && sq_dist > 1.0f*/ && !node.BoundingCube.IsInside(position))
             {
-                gravForce += (node.Mass / sq_dist) * direction.Normalized();
+                gravForce += direction.Normalized() * node.Mass / (sq_dist + 0.001f);
 
                 // We can move on to the next node
                 nextIndex = node.NextIndex;
@@ -101,6 +101,13 @@ internal class SpacialOctree
             }
         }
         while (nextIndex > 0);
+
+        if (gravForce.X != 0.0f && !float.IsNormal(gravForce.X)
+         || gravForce.Y != 0.0f && !float.IsNormal(gravForce.Y)
+         || gravForce.Z != 0.0f && !float.IsNormal(gravForce.Z))
+        {
+            throw new Exception($"Bad grav force");
+        }
 
         return gravForce;
     }

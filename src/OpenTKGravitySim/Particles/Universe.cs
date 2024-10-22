@@ -36,7 +36,8 @@ internal class Universe
 
         // particleBufferA.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
         // particleBufferB.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
-        AddParticlesEllipse(numParticles, Vector3.Zero, 2.0f * Vector3.UnitZ, Vector3.UnitY, 10.0f, size, size / 5.0f);
+        // AddParticlesEllipse(numParticles, Vector3.Zero, 2.0f * Vector3.UnitZ, Vector3.UnitY, 10.0f, size, size / 5.0f);
+        AddParticlesCluster(numParticles, 10, Vector3.Zero, 10.0f, 1.0f, 10.0f, size, size / 100.0f);
 
         // particleBufferA.Add(new(new(200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 0.0f, 20.0f, 0.0f), 10.0f));
         // // particleBufferA.Add(new(new(-200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 20.0f, 0.0f, 0.0f), 10.0f));
@@ -83,10 +84,36 @@ internal class Universe
 
 
 
-    // private void AddParticlesCluster(int numParticles, int numClusters, Vector3 center, float aveMass, float scale = 100.0f, float maxDistanceOffPlane = 0.0f)
-    // {
+    private void AddParticlesCluster(int numParticles, int numClusters, Vector3 center, float aveClusterSpeed, float aveParticleSpeed, float aveMass, float globalSize = 1000.0f, float clusterSize = 10.0f)
+    {
+        Random random = new((int) DateTimeOffset.Now.UtcTicks);
 
-    // }
+        int particlesPerCluster = numParticles / numClusters;
+
+        for (int cluster = 0; cluster < numClusters; cluster++)
+        {
+            Vector3 clusterCenter = (0.5f * globalSize * RandomVector3(random)) + center;
+            Vector3 clusterVelocity = aveClusterSpeed * RandomVector3(random);
+
+            for (int particle = 0; particle < particlesPerCluster; particle++)
+            {
+                Vector3 particlePosition = (0.5f * clusterSize * RandomVector3(random)) + clusterCenter;
+                Vector3 particleVelocity = (aveParticleSpeed * RandomVector3(random)) + clusterVelocity;
+                float mass = random.NextSingle() * 2.0f * aveMass;
+                Particle newParticle = new(new(particlePosition, 1.0f), new(particleVelocity, 0.0f), mass);
+
+                particleBufferA.Add(newParticle);
+                particleBufferB.Add(newParticle);
+            }
+        }
+    }
+
+
+
+    private static Vector3 RandomVector3(Random random)
+    {
+        return (2.0f * new Vector3(random.NextSingle(), random.NextSingle(), random.NextSingle())) - Vector3.One;
+    }
 
 
 
@@ -154,7 +181,7 @@ internal class Universe
 
         if (!particle.IsValid())
         {
-            Console.WriteLine($"{particleIndex}: {particle}\n");
+            throw new Exception($"Invalid particle!!! {particleIndex}: {particle}\n");
         }
 
         List<Particle> nextBuffer = GetNextParticleBuffer();
