@@ -164,6 +164,11 @@ internal class SpacialOctree
         }
 
         // Insert masses into the new nodes
+        if ((nodeCenterOfMass.X != 0.0 && !float.IsNormal(nodeCenterOfMass.X))
+            || (nodeCenterOfMass.Y != 0.0 && !float.IsNormal(nodeCenterOfMass.Y))
+            || (nodeCenterOfMass.Z != 0.0 && !float.IsNormal(nodeCenterOfMass.Z))
+            || (nodeMass != 0.0 && !float.IsNormal(nodeMass)))
+            throw new Exception($"Invalid grav force!!!");
         InsertIntoNode(nodeIndex, nodeCenterOfMass, nodeMass);
         InsertIntoNode(insertIndex, particle.Position.Xyz, particle.Mass.X);
     }

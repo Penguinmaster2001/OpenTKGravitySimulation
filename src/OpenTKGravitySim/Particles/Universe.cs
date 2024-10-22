@@ -135,13 +135,12 @@ internal class Universe
         // }
 
         Vector3 acceleration = gravForce / particle.Mass.X;
+        // if (float.IsNaN(acceleration.X) || float.IsNaN(acceleration.Y) || float.IsNaN(acceleration.Z)) throw new Exception($"Invalid particle!! {particleIndex}: {particle}\n");
         particle.Position += new Vector4((timeStep * particle.Velocity.Xyz) + (0.5f * timeStep * timeStep * acceleration), 0.0f);
+        // if (!particle.IsValid()) throw new Exception($"Invalid particle!! {particleIndex}: {particle}\n");
         particle.Velocity += new Vector4(timeStep * acceleration, 0.0f);
+        if (!particle.IsValid()) throw new Exception($"Invalid particle!! {particleIndex}: {particle}\n");
 
-        if (!particle.IsValid())
-        {
-            throw new Exception($"Invalid particle!! {particleIndex}: {particle}\n");
-        }
 
         List<Particle> nextBuffer = GetNextParticleBuffer();
         nextBuffer[particleIndex] = particle;
