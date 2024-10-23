@@ -116,13 +116,12 @@ internal class SimWindow : GameWindow
 
         universe.ExternalReadingBuffer = true;
         universe.ExternalReadingBuffer = false;
-        windowQuad.Render(shaderProgram, universe.Particles);
+        windowQuad.Render(shaderProgram, universe.LeafNodes);
         CheckGLError(true);
 
         Context.SwapBuffers();
 
         // Console.WriteLine($"Simulation time: {universe.SimulationTime}");
-        Console.WriteLine($"Ek: {universe.CenterOfMass} J");
     }
 
 
