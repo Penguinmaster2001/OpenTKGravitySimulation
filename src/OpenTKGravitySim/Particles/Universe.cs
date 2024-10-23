@@ -175,7 +175,10 @@ internal class Universe
             // }
             
             UpdateGlobals();
-            Parallel.Invoke(BuildNextTree, () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, TimeStep)));
+            Parallel.Invoke(() => BuildNextTree(0), () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, TimeStep, 0)));
+            Parallel.Invoke(() => BuildNextTree(1), () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, 0.5 * TimeStep, 1)));
+            Parallel.Invoke(() => BuildNextTree(2), () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, 0.5 * TimeStep, 2)));
+            Parallel.Invoke(() => BuildNextTree(3), () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, TimeStep, 3)));
             // Parallel.For(0, NumParticles, StepParticle);
 
             // while (ExternalReadingBuffer) { }
@@ -192,9 +195,16 @@ internal class Universe
 
 
 
-    private void StepParticle(int particleIndex, double timeStep)
+    private void CombineParticleSamples(int particleIndex)
     {
-        Particle particle = GetParticleBuffer(0)[particleIndex];
+
+    }
+
+
+
+    private void StepParticle(int particleIndex, double timeStep, int bufferOffset = 0)
+    {
+        Particle particle = GetParticleBuffer(bufferOffset)[particleIndex];
         
         // Vector3 gravForce = 1000.0f * GetPrevTree().CalcGravForce(particle.Position.Xyz);
 
@@ -226,7 +236,7 @@ internal class Universe
             throw new Exception($"Invalid particle!!! {particleIndex}: {particle}\n");
         }
 
-        GetParticleBuffer(1)[particleIndex] = particle;
+        GetParticleBuffer(bufferOffset + 1)[particleIndex] = particle;
 
 
         (Vector3d, Vector3d) EulerIntegration(Vector3d pos, Vector3d vel)
@@ -259,9 +269,9 @@ internal class Universe
 
 
 
-    private void BuildNextTree()
+    private void BuildNextTree(int offset = 0)
     {
-        GetTree(1).Build(GetParticleBuffer());
+        GetTree(offset + 1).Build(GetParticleBuffer(offset));
     }
 
 
