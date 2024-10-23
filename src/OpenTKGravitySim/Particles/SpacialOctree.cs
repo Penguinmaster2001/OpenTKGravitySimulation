@@ -91,7 +91,7 @@ internal class SpacialOctree
             // If the node is a leaf or the size - distance ratio is small enough, and the square distance is large enough (to ensure the particle doesn't affect itself and for numerical stability)
             if ((node.IsLeaf || node.IsEmpty || node.BoundingCube.Size * node.BoundingCube.Size < sq_dist * MaxSizeDistanceRatio * MaxSizeDistanceRatio) && sq_dist > 0.01)
             {
-                gravForce += direction.Normalized() * node.Mass / sq_dist;
+                gravForce += direction * node.Mass / (sq_dist * Math.Sqrt(sq_dist));
 
                 // We can move on to the next node
                 nextIndex = node.NextIndex;

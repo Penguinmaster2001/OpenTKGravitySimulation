@@ -9,16 +9,15 @@ namespace OpenTKGravitySim.Particles;
 
 internal class Universe
 {
-    public readonly SpacialOctree octreeA;
-    public readonly SpacialOctree octreeB;
-    public readonly List<Particle> particleBufferA;
-    public readonly List<Particle> particleBufferB;
-    public bool UseParticleBufferA = true;
+    private readonly SpacialOctree[] octrees;
+    public readonly List<Particle>[] particleBuffers;
+    public int ReadBufferIndex;
+    public const int NumBuffers = 5;
     public bool ExternalReadingBuffer = false;
-    public List<Particle> Particles => PrevParticleBuffer.ToList();
-    public List<SpacialOctreeNode> LeafNodes => GetPrevTree().Leaves.ToList();
+    public List<Particle> Particles => GetParticleBuffer().ToList();
+    public List<SpacialOctreeNode> LeafNodes => GetTree().Leaves.ToList();
     public int NumParticles { get; private set; }
-    private double timeStep;
+    public double TimeStep;
     public bool Running;
     public double SimulationTime = 0.0;
     public Vector3d TotalMomentum;
@@ -30,14 +29,17 @@ internal class Universe
 
     public Universe(int numParticles, double size, double timeStep = 0.01)
     {
-        this.timeStep = timeStep;
+        this.TimeStep = timeStep;
         Running = false;
+        ReadBufferIndex = 0;
 
-        octreeA = new(0.25, 20);
-        octreeB = new(0.25, 20);
-
-        particleBufferA = new(NumParticles);
-        particleBufferB = new(NumParticles);
+        octrees = new SpacialOctree[NumBuffers];
+        particleBuffers = new List<Particle>[NumBuffers];
+        for (int buffer = 0; buffer < NumBuffers; buffer++)
+        {
+            octrees[buffer] = new(0.25, 20);
+            particleBuffers[buffer] = new(numParticles);
+        }
 
         // particleBufferA.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
         // particleBufferB.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
@@ -51,11 +53,13 @@ internal class Universe
 
         // particleBufferB.Add(new(new(200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 0.0f, 20.0f, 0.0f), 10.0f));
         // // particleBufferB.Add(new(new(-200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 20.0f, 0.0f, 0.0f), 10.0f));
+        
+        for (int buffer = 0; buffer < NumBuffers; buffer++)
+        {
+            octrees[buffer].Build(GetParticleBuffer());
+        }
 
-        octreeA.Build(particleBufferA);
-        octreeB.Build(particleBufferB);
-
-        NumParticles = Math.Min(particleBufferA.Count, particleBufferB.Count);
+        NumParticles = GetParticleBuffer().Count;
     }
 
 
@@ -89,11 +93,9 @@ internal class Universe
                 throw new Exception($"Invalid particle!!! {i}: {newParticle}\n");
             }
 
-            particleBufferA.Add(newParticle);
-            particleBufferB.Add(newParticle);
+            AddToBuffers(newParticle);
         }
     }
-
 
 
     private void AddParticlesCluster(int numParticles, int numClusters, Vector3d center, double aveClusterSpeed, double aveParticleSpeed, double aveMass, double globalSize = 1000.0, double clusterSize = 10.0)
@@ -114,8 +116,7 @@ internal class Universe
                 double mass = random.NextDouble() * 2.0 * aveMass;
                 Particle newParticle = new(particlePosition, particleVelocity, mass);
 
-                particleBufferA.Add(newParticle);
-                particleBufferB.Add(newParticle);
+                AddToBuffers(newParticle);
             }
         }
     }
@@ -129,13 +130,24 @@ internal class Universe
 
 
 
+    private void AddToBuffers(Particle particle)
+    {
+        for (int buffer = 0; buffer < NumBuffers; buffer++)
+        {
+            particleBuffers[buffer].Add(particle);
+        }
+    }
+
+
+
+
     private void UpdateGlobals()
     {
         TotalMomentum = new();
         TotalVelocity = new();
         CenterOfMass = new();
         TotalMass = 0.0;
-        PrevParticleBuffer.ForEach(p =>{
+        GetParticleBuffer(0).ForEach(p =>{
             TotalMomentum += p.Mass * p.Velocity;
             TotalVelocity += p.Velocity;
             CenterOfMass += p.Mass * p.Position;
@@ -163,15 +175,15 @@ internal class Universe
             // }
             
             UpdateGlobals();
-            Parallel.Invoke(BuildNextTree, () => Parallel.For(0, NumParticles, StepParticle));
+            Parallel.Invoke(BuildNextTree, () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, TimeStep)));
             // Parallel.For(0, NumParticles, StepParticle);
 
             // while (ExternalReadingBuffer) { }
 
-            SimulationTime += timeStep;
+            SimulationTime += TimeStep;
             // if (SimulationTime > 10.0f) Running = false;
 
-            SwapBuffers();
+            IncrementBuffers();
         }
 
         // stopwatch.Stop();
@@ -180,9 +192,9 @@ internal class Universe
 
 
 
-    private void StepParticle(int particleIndex)
+    private void StepParticle(int particleIndex, double timeStep)
     {
-        Particle particle = PrevParticleBuffer[particleIndex];
+        Particle particle = GetParticleBuffer(0)[particleIndex];
         
         // Vector3 gravForce = 1000.0f * GetPrevTree().CalcGravForce(particle.Position.Xyz);
 
@@ -214,7 +226,7 @@ internal class Universe
             throw new Exception($"Invalid particle!!! {particleIndex}: {particle}\n");
         }
 
-        NextParticleBuffer[particleIndex] = particle;
+        GetParticleBuffer(1)[particleIndex] = particle;
 
 
         (Vector3d, Vector3d) EulerIntegration(Vector3d pos, Vector3d vel)
@@ -241,7 +253,7 @@ internal class Universe
         // Returns derivatives of position and velocity as (velocity, acceleration)
         (Vector3d, Vector3d) Derivatives(Vector3d position, Vector3d velocity)
         {
-            return (velocity, Vector3d.Clamp(1000.0 * GetPrevTree().CalcGravForce(position) / particle.Mass, 1000.0 * -Vector3d.One,  1000.0 * Vector3d.One));
+            return (velocity, Vector3d.Clamp(1000.0 * GetTree().CalcGravForce(position) / particle.Mass, 1000.0 * -Vector3d.One,  1000.0 * Vector3d.One));
         }
     }
 
@@ -249,14 +261,12 @@ internal class Universe
 
     private void BuildNextTree()
     {
-        GetNextTree().Build(PrevParticleBuffer);
+        GetTree(1).Build(GetParticleBuffer());
     }
 
 
 
-    public List<Particle> PrevParticleBuffer => UseParticleBufferA ? particleBufferB : particleBufferA;
-    private List<Particle> NextParticleBuffer => UseParticleBufferA ? particleBufferA : particleBufferB;
-    public SpacialOctree GetPrevTree() => UseParticleBufferA ? octreeB : octreeA;
-    private SpacialOctree GetNextTree() => UseParticleBufferA ? octreeA : octreeB;
-    private void SwapBuffers() => UseParticleBufferA = !UseParticleBufferA;
+    public List<Particle> GetParticleBuffer(int offset = 0) => particleBuffers[(offset + ReadBufferIndex) % NumBuffers];
+    private SpacialOctree GetTree(int offset = 0) => octrees[(offset + ReadBufferIndex) % NumBuffers];
+    private void IncrementBuffers(int amount = 1) => ReadBufferIndex = (ReadBufferIndex + amount) % NumBuffers;
 }
