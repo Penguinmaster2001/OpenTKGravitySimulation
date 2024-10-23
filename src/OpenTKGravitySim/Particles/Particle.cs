@@ -53,6 +53,20 @@ internal struct Particle(Vector3d initialPosition, Vector3d initialVelocity, dou
 
 
 
+    public static Particle operator *(double scalar, Particle b)
+    {
+        return new(scalar * b.Position, scalar * b.Velocity, scalar * b.Mass);
+    }
+
+
+
+    public static Particle operator +(Particle a, Particle b)
+    {
+        return new(a.Position + b.Position, a.Velocity + b.Velocity, a.Mass + b.Mass);
+    }
+
+
+
     public override readonly string ToString()
     {
         return $"Pos: {Position}, Vel: {Velocity}, Mass: {Mass}";

@@ -129,13 +129,10 @@ internal class SpacialOctree
             depth++;
         }
 
-        // Add particle if leaf node is empty
+        // Add particle if node is empty
         if (Nodes[nodeIndex].IsEmpty)
         {
-            SpacialOctreeNode emptyNode = Nodes[nodeIndex];
-            emptyNode.Mass = particle.Mass;
-            emptyNode.CenterOfMass = particle.Position;
-            Nodes[nodeIndex] = emptyNode;
+            InsertIntoNode(nodeIndex, particle.Position, particle.Mass);
             return;
         }
 
@@ -161,18 +158,18 @@ internal class SpacialOctree
 
 
 
-    private void InsertIntoNode(int nodeIndex, Vector3d centerOfMass, double mass)
+    private void InsertIntoNode(int nodeIndex, Vector3d position, double mass)
     {
         SpacialOctreeNode insertNode = Nodes[nodeIndex];
 
         if (insertNode.IsEmpty)
         {
-            insertNode.CenterOfMass = centerOfMass;
+            insertNode.CenterOfMass = position;
             insertNode.Mass = mass;
         }
         else
         {
-            insertNode.CenterOfMass = (insertNode.Mass * insertNode.CenterOfMass) + (mass * centerOfMass);
+            insertNode.CenterOfMass = (insertNode.Mass * insertNode.CenterOfMass) + (mass * position);
             insertNode.Mass += mass;
             insertNode.CenterOfMass /= insertNode.Mass;
         }
@@ -253,7 +250,7 @@ internal class SpacialOctree
 
 
 
-public struct SpacialOctreeNode(AABC boundingCube, int nextIndex = 0, int firstChildIndex = 0, double mass = 0.0f) : IRenderable
+public struct SpacialOctreeNode(AABC boundingCube, int nextIndex = 0, int firstChildIndex = 0, double mass = 0.0) : IRenderable
 {
     public AABC BoundingCube = boundingCube;
     public Vector3d CenterOfMass = boundingCube.Center;
@@ -267,7 +264,7 @@ public struct SpacialOctreeNode(AABC boundingCube, int nextIndex = 0, int firstC
 
 
 
-    public SpacialOctreeNode(Vector3d center, double size, int firstChildIndex = 0, int nextIndex = 0, double mass = 0.0f)
+    public SpacialOctreeNode(Vector3d center, double size, int firstChildIndex = 0, int nextIndex = 0, double mass = 0.0)
         : this(new(center, size), firstChildIndex, nextIndex, mass) { }
 
 

@@ -12,7 +12,7 @@ internal class Universe
     private readonly SpacialOctree[] octrees;
     public readonly List<Particle>[] particleBuffers;
     public int ReadBufferIndex;
-    public const int NumBuffers = 5;
+    public const int NumBuffers = 6;
     public bool ExternalReadingBuffer = false;
     public List<Particle> Particles => GetParticleBuffer().ToList();
     public List<SpacialOctreeNode> LeafNodes => GetTree().Leaves.ToList();
@@ -27,7 +27,7 @@ internal class Universe
 
 
 
-    public Universe(int numParticles, double size, double timeStep = 0.01)
+    public Universe(int numParticles, double size, double timeStep = 0.1)
     {
         this.TimeStep = timeStep;
         Running = false;
@@ -44,7 +44,7 @@ internal class Universe
         // particleBufferA.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
         // particleBufferB.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
         AddParticlesEllipse(numParticles / 2, new(500.0f, -50.0f, 1000.0f), 2.0f * -Vector3.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 50.0f, size, size / 50.0f);
-        AddParticlesEllipse(numParticles / 2, new(-500.0f, 50.0f, 1000.0f), 2.0f *  Vector3.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 50.0f, size, size / 50.0f);
+        // AddParticlesEllipse(numParticles / 2, new(-500.0f, 50.0f, 1000.0f), 2.0f *  Vector3.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 50.0f, size, size / 50.0f);
         // AddParticlesCluster(numParticles, 3, Vector3d.Zero, 2.0, 1.0, 10.0, size, size / 4.0);
         // AddParticlesEllipse(numParticles / 2, new(-1000.0, 50.0, 0.0), 100.0 *  Vector3d.UnitX, 2.0 * Vector3d.UnitZ, Vector3d.UnitY, 50.0, size, size / 50.0);
 
@@ -78,7 +78,7 @@ internal class Universe
         for (int i = 0; i < numParticles; i++)
         {
             double angle = random.NextDouble() * Math.Tau;
-            double radius = random.NextDouble() * scale;
+            double radius = (0.1 + random.NextDouble()) * scale;
             double offPlane = (random.NextDouble() - 0.5) * 2.0 * maxDistanceOffPlane;
 
             double mass = random.NextDouble() * 2.0 * aveMass;
@@ -166,22 +166,13 @@ internal class Universe
         // stopwatch.Start();
 
         while (Running)
-        {
-            // BuildNextTree();
-
-            // for (int i = 0; i < NumParticles; i++)
-            // {
-            //     StepParticle(i);
-            // }
-            
+        {            
             UpdateGlobals();
             Parallel.Invoke(() => BuildNextTree(0), () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, TimeStep, 0)));
             Parallel.Invoke(() => BuildNextTree(1), () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, 0.5 * TimeStep, 1)));
             Parallel.Invoke(() => BuildNextTree(2), () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, 0.5 * TimeStep, 2)));
             Parallel.Invoke(() => BuildNextTree(3), () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, TimeStep, 3)));
-            // Parallel.For(0, NumParticles, StepParticle);
-
-            // while (ExternalReadingBuffer) { }
+            Parallel.For(0, NumParticles, particleIndex => CombineParticleSamples(particleIndex, TimeStep));
 
             SimulationTime += TimeStep;
             // if (SimulationTime > 10.0f) Running = false;
@@ -195,39 +186,40 @@ internal class Universe
 
 
 
-    private void CombineParticleSamples(int particleIndex)
+    /// <summary>
+    /// Update particles in 5 based on 0, 1, 2, 3, and 4
+    /// Uses RK4
+    /// </summary>
+    /// <param name="particleIndex"></param>
+    /// <param name="timeStep"></param>
+    private void CombineParticleSamples(int particleIndex, double timeStep)
     {
+        Particle k1Particle = GetParticleBuffer(1)[particleIndex];
+        Particle k2Particle = GetParticleBuffer(2)[particleIndex];
+        Particle k3Particle = GetParticleBuffer(3)[particleIndex];
+        Particle k4Particle = GetParticleBuffer(4)[particleIndex];
 
+        Particle particle = GetParticleBuffer(0)[particleIndex];
+        double particleMass = particle.Mass;
+        particle = (timeStep / 6.0) * (k1Particle + (2.0 * k2Particle) + (2.0 * k3Particle) + k4Particle);
+        particle.Mass = particleMass;
+        GetParticleBuffer(5)[particleIndex] = particle;
     }
 
 
 
+    /// <summary>
+    /// Update particles in 1 based on particles from 0
+    /// </summary>
+    /// <param name="particleIndex"></param>
+    /// <param name="timeStep"></param>
+    /// <param name="bufferOffset"></param>
+    /// <exception cref="Exception"></exception>
     private void StepParticle(int particleIndex, double timeStep, int bufferOffset = 0)
     {
         Particle particle = GetParticleBuffer(bufferOffset)[particleIndex];
-        
-        // Vector3 gravForce = 1000.0f * GetPrevTree().CalcGravForce(particle.Position.Xyz);
-
-        // for (int otherParticleIndex = 0; otherParticleIndex < NumParticles; otherParticleIndex++)
-        // {
-        //     if (particleIndex == otherParticleIndex) continue;
-
-        //     Particle otherParticle = prevBuffer[otherParticleIndex];
-
-        //     Vector3 direction = otherParticle.Position.Xyz - particle.Position.Xyz;
-        //     float distance = MathF.Max(direction.Length, 0.005f);
-        //     direction /= distance;
-
-        //     gravForce += 1000.0f * (otherParticle.Mass.X / (distance * distance)) * direction;
-        // }
-
-        // Vector3 acceleration = gravForce / particle.Mass.X;
-
-        // particle.Position += new Vector4((timeStep * particle.Velocity.Xyz) + (0.5f * timeStep * timeStep * acceleration), 0.0f);
-        // particle.Velocity += new Vector4(timeStep * acceleration, 0.0f);
 
         (Vector3d pos, Vector3d vel) = RK4Integration(particle.Position, particle.Velocity);
-        // float massProportion = particle.Mass / TotalMass;
         particle.Velocity = vel - (TotalVelocity / NumParticles);
         particle.Position = pos - CenterOfMass;
 
@@ -263,12 +255,16 @@ internal class Universe
         // Returns derivatives of position and velocity as (velocity, acceleration)
         (Vector3d, Vector3d) Derivatives(Vector3d position, Vector3d velocity)
         {
-            return (velocity, Vector3d.Clamp(1000.0 * GetTree().CalcGravForce(position) / particle.Mass, 1000.0 * -Vector3d.One,  1000.0 * Vector3d.One));
+            return (velocity, 1000.0 * Vector3d.Clamp(GetTree().CalcGravForce(position) / particle.Mass, -Vector3d.One,  Vector3d.One));
         }
     }
 
 
 
+    /// <summary>
+    /// Build the tree at 1 based on particle buffer 0
+    /// </summary>
+    /// <param name="offset"></param>
     private void BuildNextTree(int offset = 0)
     {
         GetTree(offset + 1).Build(GetParticleBuffer(offset));
