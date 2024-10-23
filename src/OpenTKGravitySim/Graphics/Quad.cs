@@ -74,21 +74,28 @@ internal class Quad
 
 
 
-    public void Render<T>(ShaderProgram shaderProgram, List<T> renderables) where T : IRenderable
+    public void Render<T>(ShaderProgram shaderProgram, Camera camera, List<T> renderables) where T : IRenderable
     {
-        // foreach (Particle particle in particles)
-        // {
-        //     Console.WriteLine($"{particle.Position}, {particle.Velocity}, {particle.Mass}");
-        // }
-        int renderObjectCount = Math.Min(1_000, renderables.Count);
+        int renderObjectCount = Math.Min(1000, renderables.Count);
+        int maxIterations = Math.Min(10 * renderObjectCount, renderables.Count);
         renderObjects.Clear();
-        for (uint i = 0; i < renderObjectCount; i++)
+        uint i = 0;
+        while (renderObjects.Count < renderObjectCount && i < maxIterations)
         {
             RenderObject renderObject = renderables[(int) ((i * 110503u) % (uint) renderables.Count)].ToRenderObject();
-            renderObjects.Add(renderObject);
+            Vector4 clipSpace = renderObject.Position * camera.ViewMatrix * camera.ProjectionMatrix;
+            if (clipSpace.X >= -clipSpace.W && clipSpace.X <= clipSpace.W &&
+                clipSpace.Y >= -clipSpace.W && clipSpace.Y <= clipSpace.W &&
+                clipSpace.Z >= -clipSpace.W && clipSpace.Z <= clipSpace.W)
+            {
+                renderObject.Position = clipSpace / clipSpace.W;
+                renderObjects.Add(renderObject);
+            }
+            i++;
         }
+        renderObjects.Sort(Comparer<RenderObject>.Create((a, b) => a.Position.Z.CompareTo(b.Position.Z)));
+        renderObjectCount = renderObjects.Count;
 
-        // RenderObject[] renderObjects = renderables.Take(renderObjectCount).Select(renderable => renderable.ToRenderObject()).ToArray();
         int requiredSize = renderObjectCount * RenderObject.SizeInBytes;
 
         shaderProgram.Bind();

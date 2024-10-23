@@ -116,7 +116,7 @@ internal class SimWindow : GameWindow
 
         universe.ExternalReadingBuffer = true;
         universe.ExternalReadingBuffer = false;
-        windowQuad.Render(shaderProgram, universe.LeafNodes);
+        windowQuad.Render(shaderProgram, camera, universe.LeafNodes);
         CheckGLError(true);
 
         Context.SwapBuffers();

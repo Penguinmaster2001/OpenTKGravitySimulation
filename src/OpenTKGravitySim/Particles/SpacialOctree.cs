@@ -207,23 +207,23 @@ internal class SpacialOctree
             SpacialOctreeNode internalNode = Nodes[InternalNodeIndices[internalIndex]];
 
             double mass = Nodes[internalNode.FirstChildIndex + 0].Mass
-                       + Nodes[internalNode.FirstChildIndex + 1].Mass
-                       + Nodes[internalNode.FirstChildIndex + 2].Mass
-                       + Nodes[internalNode.FirstChildIndex + 3].Mass
-                       + Nodes[internalNode.FirstChildIndex + 4].Mass
-                       + Nodes[internalNode.FirstChildIndex + 5].Mass
-                       + Nodes[internalNode.FirstChildIndex + 6].Mass
-                       + Nodes[internalNode.FirstChildIndex + 7].Mass;
+                        + Nodes[internalNode.FirstChildIndex + 1].Mass
+                        + Nodes[internalNode.FirstChildIndex + 2].Mass
+                        + Nodes[internalNode.FirstChildIndex + 3].Mass
+                        + Nodes[internalNode.FirstChildIndex + 4].Mass
+                        + Nodes[internalNode.FirstChildIndex + 5].Mass
+                        + Nodes[internalNode.FirstChildIndex + 6].Mass
+                        + Nodes[internalNode.FirstChildIndex + 7].Mass;
 
             Vector3d centerOfMass = ((Nodes[internalNode.FirstChildIndex + 0].Mass * Nodes[internalNode.FirstChildIndex + 0].CenterOfMass)
-                                  + (Nodes[internalNode.FirstChildIndex + 1].Mass * Nodes[internalNode.FirstChildIndex + 1].CenterOfMass)
-                                  + (Nodes[internalNode.FirstChildIndex + 2].Mass * Nodes[internalNode.FirstChildIndex + 2].CenterOfMass)
-                                  + (Nodes[internalNode.FirstChildIndex + 3].Mass * Nodes[internalNode.FirstChildIndex + 3].CenterOfMass)
-                                  + (Nodes[internalNode.FirstChildIndex + 4].Mass * Nodes[internalNode.FirstChildIndex + 4].CenterOfMass)
-                                  + (Nodes[internalNode.FirstChildIndex + 5].Mass * Nodes[internalNode.FirstChildIndex + 5].CenterOfMass)
-                                  + (Nodes[internalNode.FirstChildIndex + 6].Mass * Nodes[internalNode.FirstChildIndex + 6].CenterOfMass)
-                                  + (Nodes[internalNode.FirstChildIndex + 7].Mass * Nodes[internalNode.FirstChildIndex + 7].CenterOfMass))
-                                 / mass;
+                                   + (Nodes[internalNode.FirstChildIndex + 1].Mass * Nodes[internalNode.FirstChildIndex + 1].CenterOfMass)
+                                   + (Nodes[internalNode.FirstChildIndex + 2].Mass * Nodes[internalNode.FirstChildIndex + 2].CenterOfMass)
+                                   + (Nodes[internalNode.FirstChildIndex + 3].Mass * Nodes[internalNode.FirstChildIndex + 3].CenterOfMass)
+                                   + (Nodes[internalNode.FirstChildIndex + 4].Mass * Nodes[internalNode.FirstChildIndex + 4].CenterOfMass)
+                                   + (Nodes[internalNode.FirstChildIndex + 5].Mass * Nodes[internalNode.FirstChildIndex + 5].CenterOfMass)
+                                   + (Nodes[internalNode.FirstChildIndex + 6].Mass * Nodes[internalNode.FirstChildIndex + 6].CenterOfMass)
+                                   + (Nodes[internalNode.FirstChildIndex + 7].Mass * Nodes[internalNode.FirstChildIndex + 7].CenterOfMass))
+                                  / mass;
 
             internalNode.Mass = mass;
             internalNode.CenterOfMass = centerOfMass;
