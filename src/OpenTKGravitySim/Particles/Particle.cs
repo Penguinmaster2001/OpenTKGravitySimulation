@@ -10,11 +10,11 @@ namespace OpenTKGravitySim.Particles;
 
 
 [Serializable]
-internal struct Particle(Vector3 initialPosition, Vector3 initialVelocity, float mass) : IRenderable
+internal struct Particle(Vector3d initialPosition, Vector3d initialVelocity, double mass) : IRenderable
 {
-    public Vector3 Position = initialPosition;
-    public Vector3 Velocity = initialVelocity;
-    public float Mass = mass;
+    public Vector3d Position = initialPosition;
+    public Vector3d Velocity = initialVelocity;
+    public double Mass = mass;
 
 
 
@@ -24,9 +24,9 @@ internal struct Particle(Vector3 initialPosition, Vector3 initialVelocity, float
 
     public readonly bool IsValid()
     {
-        return !float.IsNaN(Position.X) && !float.IsNaN(Position.Y) && !float.IsNaN(Position.Z) &&
-               !float.IsNaN(Velocity.X) && !float.IsNaN(Velocity.Y) && !float.IsNaN(Velocity.Z) &&
-               !float.IsNaN(    Mass);
+        return !double.IsNaN(Position.X) && !double.IsNaN(Position.Y) && !double.IsNaN(Position.Z) &&
+               !double.IsNaN(Velocity.X) && !double.IsNaN(Velocity.Y) && !double.IsNaN(Velocity.Z) &&
+               !double.IsNaN(Mass);
     }
 
 
@@ -63,9 +63,9 @@ internal struct Particle(Vector3 initialPosition, Vector3 initialVelocity, float
     public RenderObject ToRenderObject()
     {
         return new RenderObject() {
-            Position = new(Position, 1.0f),
-            Velocity = new(Velocity, 1.0f),
-            Attributes = new(Mass, 0.0f, 0.0f, 0.0f)
+            Position = new((Vector3) Position, 1.0f),
+            Velocity = new((Vector3) Velocity, 1.0f),
+            Attributes = new((float) Mass, 0.0f, 0.0f, 0.0f)
         };
     }
 }

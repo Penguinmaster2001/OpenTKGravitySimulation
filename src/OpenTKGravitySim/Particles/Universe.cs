@@ -18,34 +18,33 @@ internal class Universe
     public List<Particle> Particles => PrevParticleBuffer.ToList();
     public List<SpacialOctreeNode> LeafNodes => GetPrevTree().Leaves.ToList();
     public int NumParticles { get; private set; }
-    private float timeStep;
+    private double timeStep;
     public bool Running;
-    public float SimulationTime = 0.0f;
-    public Vector3 TotalMomentum;
-    public Vector3 TotalVelocity;
-    public float TotalMass;
-    public Vector3 CenterOfMass;
-    // public Vector3 InitialMomentum;
+    public double SimulationTime = 0.0;
+    public Vector3d TotalMomentum;
+    public Vector3d TotalVelocity;
+    public double TotalMass;
+    public Vector3d CenterOfMass;
 
 
 
-    public Universe(int numParticles, float size, float timeStep = 0.01f)
+    public Universe(int numParticles, double size, double timeStep = 0.01)
     {
         this.timeStep = timeStep;
         Running = false;
 
-        octreeA = new(0.25f, 20);
-        octreeB = new(0.25f, 20);
+        octreeA = new(0.25, 20);
+        octreeB = new(0.25, 20);
 
         particleBufferA = new(NumParticles);
         particleBufferB = new(NumParticles);
 
         // particleBufferA.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
         // particleBufferB.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
-        // AddParticlesEllipse(numParticles / 2, new(-500.0f, 50.0f, 1000.0f), 2.0f *  Vector3.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 50.0f, size, size / 50.0f);
-        // AddParticlesEllipse(numParticles / 2, new(500.0f, -50.0f, 1000.0f), 2.0f * -Vector3.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 50.0f, size, size / 50.0f);
-        AddParticlesCluster(numParticles, 3, Vector3.Zero, 2.0f, 1.0f, 10.0f, size, size / 4.0f);
-        AddParticlesEllipse(numParticles / 2, new(-1000.0f, 50.0f, 0.0f), 100.0f *  Vector3.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 50.0f, size, size / 50.0f);
+        AddParticlesEllipse(numParticles / 2, new(-500.0f, 50.0f, 1000.0f), 2.0f *  Vector3.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 50.0f, size, size / 50.0f);
+        AddParticlesEllipse(numParticles / 2, new(500.0f, -50.0f, 1000.0f), 2.0f * -Vector3.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 50.0f, size, size / 50.0f);
+        // AddParticlesCluster(numParticles, 3, Vector3d.Zero, 2.0, 1.0, 10.0, size, size / 4.0);
+        // AddParticlesEllipse(numParticles / 2, new(-1000.0, 50.0, 0.0), 100.0 *  Vector3d.UnitX, 2.0 * Vector3d.UnitZ, Vector3d.UnitY, 50.0, size, size / 50.0);
 
         // particleBufferA.Add(new(new(200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 0.0f, 20.0f, 0.0f), 10.0f));
         // // particleBufferA.Add(new(new(-200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 20.0f, 0.0f, 0.0f), 10.0f));
@@ -61,28 +60,28 @@ internal class Universe
 
 
 
-    private void AddParticlesEllipse(int numParticles, Vector3 center, Vector3 ellipseVelocity, Vector3 majorAxis, Vector3 minorAxis, float aveMass, float scale = 100.0f, float maxDistanceOffPlane = 0.0f)
+    private void AddParticlesEllipse(int numParticles, Vector3d center, Vector3d ellipseVelocity, Vector3d majorAxis, Vector3d minorAxis, double aveMass, double scale = 100.0, double maxDistanceOffPlane = 0.0)
     {
         Random random = new((int) DateTimeOffset.Now.UtcTicks);
 
         minorAxis /= majorAxis.Length;
         majorAxis.Normalize();
 
-        Vector3 normal = Vector3.Cross(majorAxis, minorAxis);
+        Vector3d normal = Vector3d.Cross(majorAxis, minorAxis);
         normal.Normalize();
 
 
         for (int i = 0; i < numParticles; i++)
         {
-            float angle = random.NextSingle() * MathF.Tau;
-            float radius = random.NextSingle() * scale;
-            float offPlane = (random.NextSingle() - 0.5f) * 2.0f * maxDistanceOffPlane;
+            double angle = random.NextDouble() * Math.Tau;
+            double radius = random.NextDouble() * scale;
+            double offPlane = (random.NextDouble() - 0.5) * 2.0 * maxDistanceOffPlane;
 
-            float mass = random.NextSingle() * 2.0f * aveMass;
+            double mass = random.NextDouble() * 2.0 * aveMass;
 
-            Vector3 newPos = center + (MathF.Cos(angle) * radius * majorAxis) + (MathF.Sin(angle) * radius * minorAxis) + (offPlane * normal);
+            Vector3d newPos = center + (Math.Cos(angle) * radius * majorAxis) + (Math.Sin(angle) * radius * minorAxis) + (offPlane * normal);
             // Vector4 velocity = new(10.0f * (random.NextSingle() - 0.5f), 10.0f * (random.NextSingle() - 0.5f), 10.0f * (random.NextSingle() - 0.5f), 0.0f) + ellipseVelocity;
-            Vector3 velocity = ellipseVelocity;// + MathF.Sqrt(10.0f / (newPos - center).Length) * Vector3.Cross(newPos - center, normal).Normalized();
+            Vector3d velocity = ellipseVelocity;// + MathF.Sqrt(10.0f / (newPos - center).Length) * Vector3.Cross(newPos - center, normal).Normalized();
             Particle newParticle = new(newPos, velocity, mass);
 
             if (!newParticle.IsValid())
@@ -97,7 +96,7 @@ internal class Universe
 
 
 
-    private void AddParticlesCluster(int numParticles, int numClusters, Vector3 center, float aveClusterSpeed, float aveParticleSpeed, float aveMass, float globalSize = 1000.0f, float clusterSize = 10.0f)
+    private void AddParticlesCluster(int numParticles, int numClusters, Vector3d center, double aveClusterSpeed, double aveParticleSpeed, double aveMass, double globalSize = 1000.0, double clusterSize = 10.0)
     {
         Random random = new((int) DateTimeOffset.Now.UtcTicks);
 
@@ -105,14 +104,14 @@ internal class Universe
 
         for (int cluster = 0; cluster < numClusters; cluster++)
         {
-            Vector3 clusterCenter = (0.5f * globalSize * RandomVector3(random)) + center;
-            Vector3 clusterVelocity = aveClusterSpeed * RandomVector3(random);
+            Vector3d clusterCenter = (0.5 * globalSize * RandomVector3(random)) + center;
+            Vector3d clusterVelocity = aveClusterSpeed * RandomVector3(random);
 
             for (int particle = 0; particle < particlesPerCluster; particle++)
             {
-                Vector3 particlePosition = (0.5f * clusterSize * RandomVector3(random)) + clusterCenter;
-                Vector3 particleVelocity = (aveParticleSpeed * RandomVector3(random)) + clusterVelocity;
-                float mass = random.NextSingle() * 2.0f * aveMass;
+                Vector3d particlePosition = (0.5 * clusterSize * RandomVector3(random)) + clusterCenter;
+                Vector3d particleVelocity = (aveParticleSpeed * RandomVector3(random)) + clusterVelocity;
+                double mass = random.NextDouble() * 2.0 * aveMass;
                 Particle newParticle = new(particlePosition, particleVelocity, mass);
 
                 particleBufferA.Add(newParticle);
@@ -123,9 +122,9 @@ internal class Universe
 
 
 
-    private static Vector3 RandomVector3(Random random)
+    private static Vector3d RandomVector3(Random random)
     {
-        return (2.0f * new Vector3(random.NextSingle(), random.NextSingle(), random.NextSingle())) - Vector3.One;
+        return (2.0 * new Vector3d(random.NextDouble(), random.NextDouble(), random.NextDouble())) - Vector3d.One;
     }
 
 
@@ -135,8 +134,8 @@ internal class Universe
         TotalMomentum = new();
         TotalVelocity = new();
         CenterOfMass = new();
-        TotalMass = 0.0f;
-        Particles.ForEach(p =>{
+        TotalMass = 0.0;
+        PrevParticleBuffer.ForEach(p =>{
             TotalMomentum += p.Mass * p.Velocity;
             TotalVelocity += p.Velocity;
             CenterOfMass += p.Mass * p.Position;
@@ -205,7 +204,7 @@ internal class Universe
         // particle.Position += new Vector4((timeStep * particle.Velocity.Xyz) + (0.5f * timeStep * timeStep * acceleration), 0.0f);
         // particle.Velocity += new Vector4(timeStep * acceleration, 0.0f);
 
-        (Vector3 pos, Vector3 vel) = RK4Integration(particle.Position, particle.Velocity);
+        (Vector3d pos, Vector3d vel) = RK4Integration(particle.Position, particle.Velocity);
         // float massProportion = particle.Mass / TotalMass;
         particle.Velocity = vel - (TotalVelocity / NumParticles);
         particle.Position = pos - CenterOfMass;
@@ -218,31 +217,31 @@ internal class Universe
         NextParticleBuffer[particleIndex] = particle;
 
 
-        (Vector3, Vector3) EulerIntegration(Vector3 pos, Vector3 vel)
+        (Vector3d, Vector3d) EulerIntegration(Vector3d pos, Vector3d vel)
         {
-            (vel, Vector3 acc) = Derivatives(pos, vel);
-            pos += (timeStep * vel) + (0.5f * timeStep * timeStep * acc);
+            (vel, Vector3d acc) = Derivatives(pos, vel);
+            pos += (timeStep * vel) + (0.5 * timeStep * timeStep * acc);
             vel += timeStep * acc;
             return (pos, vel);
         }
 
 
-        (Vector3, Vector3) RK4Integration(Vector3 pos, Vector3 vel)
+        (Vector3d, Vector3d) RK4Integration(Vector3d pos, Vector3d vel)
         {
-            (Vector3 k1Pos, Vector3 k1Vel) = Derivatives(pos, vel);
-            (Vector3 k2Pos, Vector3 k2Vel) = Derivatives(pos + (0.5f * timeStep * k1Pos), vel + (0.5f * timeStep * k1Vel));
-            (Vector3 k3Pos, Vector3 k3Vel) = Derivatives(pos + (0.5f * timeStep * k2Pos), vel + (0.5f * timeStep * k2Vel));
-            (Vector3 k4Pos, Vector3 k4Vel) = Derivatives(pos + (timeStep * k3Pos), vel + (timeStep * k3Vel));
-            pos += (timeStep / 6.0f) * (k1Pos + (2.0f * k2Pos) + (2.0f * k3Pos) + k4Pos);
-            vel += (timeStep / 6.0f) * (k1Vel + (2.0f * k2Vel) + (2.0f * k3Vel) + k4Vel);
+            (Vector3d k1Pos, Vector3d k1Vel) = Derivatives(pos, vel);
+            (Vector3d k2Pos, Vector3d k2Vel) = Derivatives(pos + (0.5 * timeStep * k1Pos), vel + (0.5 * timeStep * k1Vel));
+            (Vector3d k3Pos, Vector3d k3Vel) = Derivatives(pos + (0.5 * timeStep * k2Pos), vel + (0.5 * timeStep * k2Vel));
+            (Vector3d k4Pos, Vector3d k4Vel) = Derivatives(pos + (timeStep * k3Pos), vel + (timeStep * k3Vel));
+            pos += (timeStep / 6.0) * (k1Pos + (2.0 * k2Pos) + (2.0 * k3Pos) + k4Pos);
+            vel += (timeStep / 6.0) * (k1Vel + (2.0 * k2Vel) + (2.0 * k3Vel) + k4Vel);
             return (pos, vel);
         }
 
 
         // Returns derivatives of position and velocity as (velocity, acceleration)
-        (Vector3, Vector3) Derivatives(Vector3 position, Vector3 velocity)
+        (Vector3d, Vector3d) Derivatives(Vector3d position, Vector3d velocity)
         {
-            return (velocity, Vector3.Clamp(1000.0f * GetPrevTree().CalcGravForce(position) / particle.Mass, 100.0f * -Vector3.One,  1000.0f * Vector3.One));
+            return (velocity, Vector3d.Clamp(1000.0 * GetPrevTree().CalcGravForce(position) / particle.Mass, 1000.0 * -Vector3d.One,  1000.0 * Vector3d.One));
         }
     }
 
