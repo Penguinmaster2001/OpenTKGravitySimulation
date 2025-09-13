@@ -17,11 +17,11 @@ public interface IRenderable
 
 
 [Serializable]
-public struct RenderObject(Vector4 position, Vector4 velocity, Vector4 attributes) : IRenderable
+public struct RenderObject(Vector4 position, Vector4 velocity, Matrix4 attributes) : IRenderable
 {
     public Vector4 Position = position;
     public Vector4 Velocity = velocity;
-    public Vector4 Attributes = attributes;
+    public Matrix4 Attributes = attributes;
     public static int SizeInBytes => Marshal.SizeOf<RenderObject>();
 
     public readonly RenderObject ToRenderObject()

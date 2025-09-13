@@ -95,6 +95,8 @@ internal class SimWindow : GameWindow
             CursorState = CursorState == CursorState.Grabbed ? CursorState.Normal : CursorState.Grabbed;
         }
         camera.Update(keyboardState, mouseState, args);
+
+        // Console.WriteLine($"Frame delta: {args.Time}, fps: {1.0 / args.Time}");
     }
 
 

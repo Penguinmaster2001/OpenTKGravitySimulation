@@ -14,6 +14,7 @@ internal struct Particle(Vector3d initialPosition, Vector3d initialVelocity, dou
 {
     public Vector3d Position = initialPosition;
     public Vector3d Velocity = initialVelocity;
+    public Vector3d Acceleration = Vector3d.Zero;
     public double Mass = mass;
 
 
@@ -26,6 +27,7 @@ internal struct Particle(Vector3d initialPosition, Vector3d initialVelocity, dou
     {
         return !double.IsNaN(Position.X) && !double.IsNaN(Position.Y) && !double.IsNaN(Position.Z) &&
                !double.IsNaN(Velocity.X) && !double.IsNaN(Velocity.Y) && !double.IsNaN(Velocity.Z) &&
+               !double.IsNaN(Acceleration.X) && !double.IsNaN(Acceleration.Y) && !double.IsNaN(Acceleration.Z) &&
                !double.IsNaN(Mass);
     }
 
@@ -78,8 +80,11 @@ internal struct Particle(Vector3d initialPosition, Vector3d initialVelocity, dou
     {
         return new RenderObject() {
             Position = new((Vector3) Position, 1.0f),
-            Velocity = new((Vector3) Velocity, 1.0f),
-            Attributes = new((float) Mass, 0.0f, 0.0f, 0.0f)
+            Velocity = new((Vector3) Velocity, 0.0f),
+            Attributes = new(new((float) Mass, 0.0f, 0.0f, 0.0f),
+                             new((Vector3) Acceleration, 0.0f),
+                             new(0.0f, 0.0f, 0.0f, 0.0f),
+                             new(0.0f, 0.0f, 0.0f, 0.0f))
         };
     }
 }

@@ -34,28 +34,28 @@ internal class Camera
         }
     }
     
-    private float _fov = 110;
-    public float FOV
+    private double _fov = 110.0;
+    public double FOV
     {
         get => _fov;
         set
         {
-            _fov = MathHelper.Clamp(value, 0.1f, 179.9f);
+            _fov = MathHelper.Clamp(value, 0.1, 179.9);
             UpdateProjectionMatrix();
         }
     }
 
     private float nearClip = 1.0f;
     private float farClip = 50_000.0f;
-    private float sensitivity = 10.0f;
+    private double sensitivity = 100.0f;
     private float MaxPitch = 89.99f;
     private float MinPitch = -89.99f;
 
-    public float MovementSpeed { get; private set; } = 1000.0f;
+    public double MovementSpeed { get; private set; } = 1000.0f;
     public Vector3 Velocity { get; private set; }
     private bool firstMove = true;
     public Vector2 mouseLastPos;
-    public float mouseSmoothFactor = 0.2f;
+    public double mouseSmoothFactor = 0.2;
 
     public Matrix4 ViewMatrix => Matrix4.LookAt(Position, Position + forward, up);
 
@@ -89,7 +89,7 @@ internal class Camera
 
     private void UpdateProjectionMatrix()
     {
-        ProjectionMatrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV),
+        ProjectionMatrix = Matrix4.CreatePerspectiveFieldOfView((float) MathHelper.DegreesToRadians(FOV),
                                                                 ScreenWidth / ScreenHeight,
                                                                 nearClip,
                                                                 farClip);
@@ -97,7 +97,7 @@ internal class Camera
 
 
 
-    public void InputController(KeyboardState keyboardState, MouseState mouseState, float frameDelta)
+    public void InputController(KeyboardState keyboardState, MouseState mouseState, double frameDelta)
     {
         Vector3 keyboardDirection = Vector3.Zero;
 
@@ -131,23 +131,23 @@ internal class Camera
             keyboardDirection.Normalize();
         }
 
-        float scrollAmount = frameDelta * -mouseState.ScrollDelta.Y;
+        double scrollAmount = frameDelta * -mouseState.ScrollDelta.Y;
         if (keyboardState.IsKeyDown(Keys.LeftControl))
         {
             FOV += 50.0f * scrollAmount;
         }
         else if (keyboardState.IsKeyDown(Keys.LeftShift))
         {
-            sensitivity += 100.0f * scrollAmount;
-            sensitivity = MathHelper.Clamp(sensitivity, 1.0f, 1000.0f);
+            sensitivity += 10.0 * sensitivity * scrollAmount;
+            sensitivity = MathHelper.Clamp(sensitivity, 1.0f, 10_000.0f);
         }
         else
         {
-            MovementSpeed += 5.0f * MovementSpeed * scrollAmount;
-            MovementSpeed = MathHelper.Clamp(MovementSpeed, 10.0f, 100_000.0f);
+            MovementSpeed += 5.0 * MovementSpeed * scrollAmount;
+            MovementSpeed = MathHelper.Clamp(MovementSpeed, 10.0, 100_000.0);
         }
 
-        Velocity = MovementSpeed * keyboardDirection;
+        Velocity = (float) MovementSpeed * keyboardDirection;
 
         Vector2 mouseCurPos = new(mouseState.X, -mouseState.Y);
         if (firstMove)
@@ -157,11 +157,11 @@ internal class Camera
         }
         else
         {
-            Vector2 smoothMousePos = Vector2.Lerp(mouseLastPos, mouseCurPos, MathF.Min(mouseSmoothFactor, 1.0f));
+            Vector2 smoothMousePos = Vector2.Lerp(mouseLastPos, mouseCurPos, (float) Math.Max(1.0, 500.0 * Math.Max(frameDelta, 0.002) * mouseSmoothFactor));
             Vector2 mouseDelta = smoothMousePos - mouseLastPos;
             mouseLastPos = smoothMousePos;
 
-            RotationEuler += frameDelta * (FOV / 180.0f) * sensitivity * mouseDelta;
+            RotationEuler += (Vector2) (Math.Max(frameDelta, 0.002) * (FOV / 180.0) * sensitivity * (Vector2d) mouseDelta);
 
             if (RotationEuler.Y > MaxPitch) RotationEuler.Y = MaxPitch;
             else if (RotationEuler.Y < MinPitch) RotationEuler.Y = MinPitch;
@@ -190,7 +190,7 @@ internal class Camera
     {
         float frameDelta = (float) e.Time;
 
-        InputController(keyboardState, mouseState, frameDelta);
+        InputController(keyboardState, mouseState, e.Time);
 
         UpdateVectors(frameDelta);
     }

@@ -1,4 +1,5 @@
 
+using System.Numerics;
 using OpenTK.Mathematics;
 
 
@@ -24,10 +25,11 @@ internal class Universe
     public Vector3d TotalVelocity;
     public double TotalMass;
     public Vector3d CenterOfMass;
+    public double GravMultiplier = 1.0;
 
 
 
-    public Universe(int numParticles, double size, double timeStep = 0.1)
+    public Universe(int numParticles, double size, double timeStep = 0.01)
     {
         this.TimeStep = timeStep;
         Running = false;
@@ -41,25 +43,69 @@ internal class Universe
             particleBuffers[buffer] = new(numParticles);
         }
 
-        // particleBufferA.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
-        // particleBufferB.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
-        AddParticlesEllipse(numParticles / 2, new(500.0f, -50.0f, 1000.0f), 2.0f * -Vector3.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 50.0f, size, size / 50.0f);
-        // AddParticlesEllipse(numParticles / 2, new(-500.0f, 50.0f, 1000.0f), 2.0f *  Vector3.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 50.0f, size, size / 50.0f);
-        // AddParticlesCluster(numParticles, 3, Vector3d.Zero, 2.0, 1.0, 10.0, size, size / 4.0);
-        // AddParticlesEllipse(numParticles / 2, new(-1000.0, 50.0, 0.0), 100.0 *  Vector3d.UnitX, 2.0 * Vector3d.UnitZ, Vector3d.UnitY, 50.0, size, size / 50.0);
+        particleBufferA.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4d.Zero, 5_000_000.0f));
+        particleBufferB.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4d.Zero, 5_000_000.0f));
+        AddParticlesEllipse(numParticles / 2, new(500.0, -50.0, 1000.0), 2.0f * -Vector3d.UnitX, 2.0f * Vector3d.UnitZ, Vector3d.UnitY, 50.0f, size, size / 50.0f);
+        AddParticlesEllipse(numParticles / 2, new(-500.0, 50.0, 1000.0), 2.0f *  Vector3d.UnitX, 2.0f * Vector3d.UnitZ, Vector3d.UnitY, 50.0f, size, size / 50.0f);
+        AddParticlesCluster(numParticles, 3, Vector3d.Zero, 2.0, 1.0, 10.0, size, size / 4.0);
+        AddParticlesEllipse(numParticles / 2, new(-1000.0, 50.0, 0.0), 100.0 *  Vector3d.UnitX, 2.0 * Vector3d.UnitZ, Vector3d.UnitY, 50.0, size, size / 50.0);
 
-        // particleBufferA.Add(new(new(200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 0.0f, 20.0f, 0.0f), 10.0f));
-        // // particleBufferA.Add(new(new(-200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 20.0f, 0.0f, 0.0f), 10.0f));
+        particleBufferA.Add(new(new(200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 0.0f, 20.0f, 0.0f), 10.0f));
+        // particleBufferA.Add(new(new(-200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 20.0f, 0.0f, 0.0f), 10.0f));
 
-        // particleBufferB.Add(new(new(200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 0.0f, 20.0f, 0.0f), 10.0f));
-        // // particleBufferB.Add(new(new(-200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 20.0f, 0.0f, 0.0f), 10.0f));
+        particleBufferB.Add(new(new(200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 0.0f, 20.0f, 0.0f), 10.0f));
+        // particleBufferB.Add(new(new(-200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 20.0f, 0.0f, 0.0f), 10.0f));
+
+        // GenerateStarSystem(1, Vector3d.Zero, Vector3d.Zero, Vector3d.UnitY, 100_000.0, 0.99, 100.0);
         
         for (int buffer = 0; buffer < NumBuffers; buffer++)
         {
-            octrees[buffer].Build(GetParticleBuffer());
+            octrees[buffer].Build(particleBuffers[buffer]);
         }
 
         NumParticles = GetParticleBuffer().Count;
+    }
+
+
+
+    private void GenerateStarSystem(int numPlanets, Vector3d center, Vector3d velocity, Vector3d orbitPlaneNormal, double starMass, double starMassProportion, double minPlanetOrbitSpacing)
+    {
+        Random random = new((int) DateTimeOffset.Now.UtcTicks);
+
+        orbitPlaneNormal.Normalize();
+        double angleOffX = Vector3d.CalculateAngle(orbitPlaneNormal, Vector3d.UnitX);
+        Vector3d axis1 =  0.25 * Math.PI < angleOffX && angleOffX < 0.75 * Math.PI ? Vector3d.Cross(orbitPlaneNormal, Vector3d.UnitX) : Vector3d.Cross(orbitPlaneNormal, Vector3d.UnitZ);
+        Vector3d axis2 = Vector3d.Cross(orbitPlaneNormal, axis1);
+
+
+        Particle star = new(center, velocity, starMass);
+        AddToBuffers(star);
+        double totalAllowedPlanetMass = starMass * (1.0 - starMassProportion);
+        double[] planetMasses = new double[numPlanets];
+        
+        double planetMassMultiplier = 0.0;
+        for (int planetIndex = 0; planetIndex < numPlanets; planetIndex++)
+        {
+            double planetMass = random.NextDouble();
+            planetMassMultiplier += planetMass;
+            planetMasses[planetIndex] = planetMass;
+        }
+        planetMassMultiplier = totalAllowedPlanetMass / planetMassMultiplier;
+
+        double orbitRadius = 0.0;
+        for (int planetIndex = 0; planetIndex < numPlanets; planetIndex++)
+        {
+            orbitRadius += minPlanetOrbitSpacing * (1.0 + 0.1 * random.NextDouble());
+            double startAngle = 2.0 * random.NextDouble() * Math.PI;
+            double planetMass = planetMasses[planetIndex] * planetMassMultiplier;
+            Vector3d startPosition = center + (Math.Cos(startAngle) * orbitRadius * axis1) + (Math.Sin(startAngle) * orbitRadius * axis2);
+            Vector3d toStar = center - startPosition;
+            double orbitSpeed = Math.Sqrt(GravMultiplier * (planetMass + starMass) / toStar.Length);
+            Vector3d orbitVelocity = orbitSpeed * Vector3d.Cross(toStar, orbitPlaneNormal).Normalized();
+
+            Particle planet = new(startPosition, orbitVelocity, planetMass);
+            AddToBuffers(planet);
+        }
     }
 
 
@@ -134,7 +180,9 @@ internal class Universe
     {
         for (int buffer = 0; buffer < NumBuffers; buffer++)
         {
+            Console.WriteLine($"Adding {particle} to buffer {buffer}");
             particleBuffers[buffer].Add(particle);
+            Console.WriteLine($"In buffer at {buffer}: {particleBuffers[buffer].Last()}");
         }
     }
 
@@ -164,20 +212,40 @@ internal class Universe
         Running = true;
         // var stopwatch = new System.Diagnostics.Stopwatch();
         // stopwatch.Start();
+        int i = 0;
 
-        while (Running)
+        while (i < 10 && Running)
         {            
             UpdateGlobals();
-            Parallel.Invoke(() => BuildNextTree(0), () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, TimeStep, 0)));
-            Parallel.Invoke(() => BuildNextTree(1), () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, 0.5 * TimeStep, 1)));
-            Parallel.Invoke(() => BuildNextTree(2), () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, 0.5 * TimeStep, 2)));
-            Parallel.Invoke(() => BuildNextTree(3), () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, TimeStep, 3)));
+            // Parallel.Invoke(() => BuildNextTree(0), () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, TimeStep, 0)));
+            // Parallel.Invoke(() => BuildNextTree(1), () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, 0.5 * TimeStep, 1)));
+            // Parallel.Invoke(() => BuildNextTree(2), () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, 0.5 * TimeStep, 2)));
+            // Parallel.Invoke(() => BuildNextTree(3), () => Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, TimeStep, 3)));
+            BuildNextTree(0);
+            Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, TimeStep, 0));
+            BuildNextTree(1);
+            Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, 0.5 * TimeStep, 1));
+            BuildNextTree(2);
+            Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, 0.5 * TimeStep, 2));
+            BuildNextTree(3);
+            Parallel.For(0, NumParticles, particleIndex => StepParticle(particleIndex, TimeStep, 3));
+
             Parallel.For(0, NumParticles, particleIndex => CombineParticleSamples(particleIndex, TimeStep));
 
             SimulationTime += TimeStep;
             // if (SimulationTime > 10.0f) Running = false;
 
-            IncrementBuffers();
+            Particle p0 = GetParticleBuffer()[0];
+            Particle p1 = GetParticleBuffer()[1];
+            Vector3d toOther = p0.Position - p1.Position;
+            Vector3d expGravForce = toOther.Normalized() * GravMultiplier * (p0.Mass + p1.Mass) / toOther.LengthSquared;
+            Console.WriteLine($"0 Expected acceleration: {expGravForce / p0.Mass}");
+            Console.WriteLine($"0 Actual acceleration: {p0.Acceleration}");
+            Console.WriteLine($"1 Expected acceleration: {expGravForce / p1.Mass}");
+            Console.WriteLine($"1 Actual acceleration: {p1.Acceleration}");
+            Console.WriteLine($"Values: {p0}\n{p1}\n{toOther}\n{expGravForce}\n\n");
+            IncrementBuffers(5);
+            i++;
         }
 
         // stopwatch.Stop();
@@ -194,15 +262,18 @@ internal class Universe
     /// <param name="timeStep"></param>
     private void CombineParticleSamples(int particleIndex, double timeStep)
     {
+        Particle particle = GetParticleBuffer(0)[particleIndex];
         Particle k1Particle = GetParticleBuffer(1)[particleIndex];
         Particle k2Particle = GetParticleBuffer(2)[particleIndex];
         Particle k3Particle = GetParticleBuffer(3)[particleIndex];
         Particle k4Particle = GetParticleBuffer(4)[particleIndex];
 
-        Particle particle = GetParticleBuffer(0)[particleIndex];
         double particleMass = particle.Mass;
+        particle.Acceleration = particle.Velocity;
         particle = (timeStep / 6.0) * (k1Particle + (2.0 * k2Particle) + (2.0 * k3Particle) + k4Particle);
         particle.Mass = particleMass;
+        particle.Acceleration = (particle.Velocity - particle.Acceleration) / timeStep;
+        Console.WriteLine($"{particleIndex} s Actual acceleration: {particle.Acceleration}");
         GetParticleBuffer(5)[particleIndex] = particle;
     }
 
@@ -225,6 +296,7 @@ internal class Universe
 
         if (!particle.IsValid())
         {
+            Running = false;
             throw new Exception($"Invalid particle!!! {particleIndex}: {particle}\n");
         }
 
@@ -255,24 +327,30 @@ internal class Universe
         // Returns derivatives of position and velocity as (velocity, acceleration)
         (Vector3d, Vector3d) Derivatives(Vector3d position, Vector3d velocity)
         {
-            return (velocity, 1000.0 * Vector3d.Clamp(GetTree().CalcGravForce(position) / particle.Mass, -Vector3d.One,  Vector3d.One));
+            Vector3d acc = GravMultiplier * GetTree().CalcGravForce(position) / particle.Mass;
+            return (velocity, acc);
         }
     }
 
 
 
     /// <summary>
-    /// Build the tree at 1 based on particle buffer 0
+    /// Build the tree at 0 based on particle buffer -1
     /// </summary>
     /// <param name="offset"></param>
     private void BuildNextTree(int offset = 0)
     {
-        GetTree(offset + 1).Build(GetParticleBuffer(offset));
+        GetTree(offset).Build(GetParticleBuffer(offset));
     }
 
 
 
-    public List<Particle> GetParticleBuffer(int offset = 0) => particleBuffers[(offset + ReadBufferIndex) % NumBuffers];
-    private SpacialOctree GetTree(int offset = 0) => octrees[(offset + ReadBufferIndex) % NumBuffers];
-    private void IncrementBuffers(int amount = 1) => ReadBufferIndex = (ReadBufferIndex + amount) % NumBuffers;
+    public List<Particle> GetParticleBuffer(int offset = 0) => particleBuffers[((offset % NumBuffers) + NumBuffers + ReadBufferIndex) % NumBuffers];
+    private SpacialOctree GetTree(int offset = 0) => octrees[((offset % NumBuffers) + NumBuffers + ReadBufferIndex) % NumBuffers];
+
+    /// <summary>
+    /// Rotate buffer at amount to 0
+    /// </summary>
+    /// <param name="amount"></param>
+    private void IncrementBuffers(int amount = 1) => ReadBufferIndex = ((amount % NumBuffers) + NumBuffers + ReadBufferIndex) % NumBuffers;
 }

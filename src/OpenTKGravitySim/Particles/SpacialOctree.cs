@@ -130,7 +130,7 @@ internal class SpacialOctree
         }
 
         // Add particle if node is empty
-        if (Nodes[nodeIndex].IsEmpty)
+        if (Nodes[nodeIndex].IsLeaf && Nodes[nodeIndex].IsEmpty)
         {
             InsertIntoNode(nodeIndex, particle.Position, particle.Mass);
             return;
@@ -283,7 +283,10 @@ public struct SpacialOctreeNode(AABC boundingCube, int nextIndex = 0, int firstC
     {
         Vector4 position = new((Vector3) CenterOfMass, 1.0f);
         Vector4 velocity = new((Vector3) BoundingCube.Center, 1.0f);
-        Vector4 attributes = new((float) Mass, (float) BoundingCube.Size, 0.0f, 0.0f);
+        Matrix4 attributes = new(new((float) Mass, 0.0f, 0.0f, 0.0f),
+                                 new((float) BoundingCube.Size, 0.0f, 0.0f, 0.0f),
+                                 new(FirstChildIndex, 0.0f, 0.0f, 0.0f),
+                                 new(NextIndex, 0.0f, 0.0f, 0.0f));
 
         return new(position, velocity, attributes);
     }

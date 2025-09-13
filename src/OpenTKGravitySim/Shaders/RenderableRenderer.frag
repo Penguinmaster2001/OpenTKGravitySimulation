@@ -7,7 +7,7 @@ struct Renderable
 {
     vec4 position;
     vec4 velocity;
-    vec4 attributes;
+    mat4 attributes;
 };
 
 // const int particleSizeFloats = 12;
@@ -136,10 +136,11 @@ void main()
         float sqrDist = (dir.x * dir.x) + (dir.y * dir.y);
 
         float depth = 1.0 - (0.5 * (ndcPos.z + 1.0));
-        if (sqrDist < depth * depth * 0.1 * renderable.attributes.x)
+        if (sqrDist < depth * depth * 0.01 * renderable.attributes[0][0])
         {
             // FragColor = vec4((renderable.velocity.xyz * 0.01f) + vec3(0.5), 1.0);
-            FragColor = vec4(0.5, vec2(renderable.attributes.x / renderable.attributes.y), 1.0);
+            // FragColor = vec4(0.5, vec2(renderable.attributes[0][0] / renderable.attributes[1][0]), 1.0);
+            FragColor = vec4(abs(renderable.attributes[0][1]), abs(renderable.attributes[1][1]), abs(renderable.attributes[2][1]), 1.0);
             return;
             // FragColor += vec4(0.5, vec2(renderable.attributes.x / renderable.attributes.y), 1.0) * depth * depth * 0.1 * renderable.attributes.x / sqrDist;
         }
