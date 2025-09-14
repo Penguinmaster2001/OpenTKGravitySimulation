@@ -107,7 +107,7 @@ public class SimWindow : GameWindow
         Renderer.ShaderProgram.SetCameraUniforms(_camera);
         CheckGLError();
 
-        Renderer.Render(_universe.LeafNodes);
+        Renderer.Render(_universe.Particles);
         CheckGLError(true);
 
         Context.SwapBuffers();

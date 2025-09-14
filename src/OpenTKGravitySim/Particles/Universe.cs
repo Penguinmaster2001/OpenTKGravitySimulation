@@ -15,10 +15,10 @@ public class Universe
     public readonly List<Particle> particleBufferB;
     public bool UseParticleBufferA = true;
     public bool ExternalReadingBuffer = false;
-    public List<Particle> Particles => PrevParticleBuffer.ToList();
-    public List<SpacialOctreeNode> LeafNodes => GetPrevTree().Leaves.ToList();
+    public List<Particle> Particles => [.. PrevParticleBuffer];
+    public List<SpacialOctreeNode> LeafNodes => [.. GetPrevTree().Leaves];
     public int NumParticles { get; private set; }
-    private double timeStep;
+    private double _timeStep;
     public bool Running;
     public double SimulationTime = 0.0;
     public Vector3d TotalMomentum;
@@ -30,19 +30,19 @@ public class Universe
 
     public Universe(int numParticles, double size, double timeStep = 0.01)
     {
-        this.timeStep = timeStep;
+        _timeStep = timeStep;
         Running = false;
 
-        octreeA = new(0.25, 20);
-        octreeB = new(0.25, 20);
+        octreeA = new(0.05, 32);
+        octreeB = new(0.05, 32);
 
         particleBufferA = new(NumParticles);
         particleBufferB = new(NumParticles);
 
         // particleBufferA.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
         // particleBufferB.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
-        AddParticlesEllipse(numParticles / 2, new(500.0f, -50.0f, 1000.0f), 2.0f * -Vector3.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 50.0f, size, size / 50.0f);
-        AddParticlesEllipse(numParticles / 2, new(-500.0f, 50.0f, 1000.0f), 2.0f *  Vector3.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 50.0f, size, size / 50.0f);
+        AddParticlesEllipse(numParticles / 2, new(500.0f, -50.0f, 1000.0f), 0.0 * 0.05 * -Vector3d.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 50.0, size, size / 50.0);
+        AddParticlesEllipse(numParticles / 2, new(-500.0f, 50.0f, 1000.0f), 0.0 * 0.05 *  Vector3d.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 50.0, size, size / 50.0);
         // AddParticlesCluster(numParticles, 3, Vector3d.Zero, 2.0, 1.0, 10.0, size, size / 4.0);
         // AddParticlesEllipse(numParticles / 2, new(-1000.0, 50.0, 0.0), 100.0 *  Vector3d.UnitX, 2.0 * Vector3d.UnitZ, Vector3d.UnitY, 50.0, size, size / 50.0);
 
@@ -74,14 +74,14 @@ public class Universe
         for (int i = 0; i < numParticles; i++)
         {
             double angle = random.NextDouble() * Math.Tau;
-            double radius = random.NextDouble() * scale;
+            double radius = (0.05 * scale) + (random.NextDouble() * scale);
             double offPlane = (random.NextDouble() - 0.5) * 2.0 * maxDistanceOffPlane;
 
             double mass = random.NextDouble() * 2.0 * aveMass;
 
             Vector3d newPos = center + (Math.Cos(angle) * radius * majorAxis) + (Math.Sin(angle) * radius * minorAxis) + (offPlane * normal);
             // Vector4 velocity = new(10.0f * (random.NextSingle() - 0.5f), 10.0f * (random.NextSingle() - 0.5f), 10.0f * (random.NextSingle() - 0.5f), 0.0f) + ellipseVelocity;
-            Vector3d velocity = ellipseVelocity;// + MathF.Sqrt(10.0f / (newPos - center).Length) * Vector3.Cross(newPos - center, normal).Normalized();
+            Vector3d velocity = ellipseVelocity + Math.Sqrt(0.5 / (newPos - center).Length) * Vector3d.Cross(newPos - center, normal).Normalized();
             Particle newParticle = new(newPos, velocity, mass);
 
             if (!newParticle.IsValid())
@@ -168,7 +168,7 @@ public class Universe
 
             // while (ExternalReadingBuffer) { }
 
-            SimulationTime += timeStep;
+            SimulationTime += _timeStep;
             // if (SimulationTime > 10.0f) Running = false;
 
             SwapBuffers();
@@ -220,8 +220,8 @@ public class Universe
         (Vector3d, Vector3d) EulerIntegration(Vector3d pos, Vector3d vel)
         {
             (vel, Vector3d acc) = Derivatives(pos, vel);
-            pos += (timeStep * vel) + (0.5 * timeStep * timeStep * acc);
-            vel += timeStep * acc;
+            pos += (_timeStep * vel) + (0.5 * _timeStep * _timeStep * acc);
+            vel += _timeStep * acc;
             return (pos, vel);
         }
 

@@ -1,6 +1,5 @@
 
 using System.Runtime.InteropServices;
-
 using OpenTK.Mathematics;
 using OpenTKGravitySim.Graphics;
 
@@ -63,7 +62,7 @@ public class SpacialOctree
 
         SpacialOctreeNode root = new(center, size);
         Nodes.Add(root);
-        
+
         // Insert each particle
         for (int particleIndex = 0; particleIndex < particles.Count; particleIndex++)
         {
@@ -86,12 +85,12 @@ public class SpacialOctree
             SpacialOctreeNode node = Nodes[nextIndex];
 
             Vector3d direction = node.CenterOfMass - position;
-            double sq_dist = direction.LengthSquared;
+            double dist = direction.Length;
 
             // If the node is a leaf or the size - distance ratio is small enough, and the square distance is large enough (to ensure the particle doesn't affect itself and for numerical stability)
-            if ((node.IsLeaf || node.IsEmpty || node.BoundingCube.Size * node.BoundingCube.Size < sq_dist * MaxSizeDistanceRatio * MaxSizeDistanceRatio) && sq_dist > 0.01)
+            if ((node.IsLeaf || node.IsEmpty || node.BoundingCube.Size < dist * MaxSizeDistanceRatio) && dist > 0.00001)
             {
-                gravForce += direction.Normalized() * node.Mass / sq_dist;
+                gravForce += direction.Normalized() * node.Mass / (dist * dist);
 
                 // We can move on to the next node
                 nextIndex = node.NextIndex;
@@ -185,15 +184,17 @@ public class SpacialOctree
     private void Subdivide(int nodeIndex)
     {
         InternalNodeIndices.Add(nodeIndex);
-        SpacialOctreeNode node = Nodes[nodeIndex];
+        var node = Nodes[nodeIndex];
         node.FirstChildIndex = NumNodes;
         Nodes[nodeIndex] = node;
+
+        int numNodes = NumNodes;
 
         AABC[] subdividedAABCs = node.BoundingCube.SplitIntoOctants();
         for (int child = 0; child < 8; child++)
         {
-            int next = child == 7 ? node.NextIndex : NumNodes + child + 1;
-            SpacialOctreeNode childNode = new(subdividedAABCs[child], next);
+            int next = child == 7 ? node.NextIndex : numNodes + child + 1;
+            var childNode = new SpacialOctreeNode(subdividedAABCs[child], next);
             Nodes.Add(childNode);
         }
     }
@@ -284,9 +285,9 @@ public struct SpacialOctreeNode(AABC boundingCube, int nextIndex = 0, int firstC
 
     public readonly RenderObject ToRenderObject()
     {
-        Vector4 position = new((Vector3) CenterOfMass, 1.0f);
-        Vector4 velocity = new((Vector3) BoundingCube.Center, 1.0f);
-        Vector4 attributes = new((float) Mass, (float) BoundingCube.Size, 0.0f, 0.0f);
+        Vector4 position = new((Vector3)CenterOfMass, 1.0f);
+        Vector4 velocity = new((Vector3)BoundingCube.Center, 1.0f);
+        Vector4 attributes = new((float)Mass, (float)BoundingCube.Size, 0.0f, 0.0f);
 
         return new(position, velocity, attributes);
     }
