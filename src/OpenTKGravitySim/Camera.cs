@@ -9,7 +9,7 @@ namespace OpenTKGravitySim;
 
 
 
-internal class Camera
+public class Camera
 {
     // TODO: These should be from another class that manages the screen
     private float _screenWidth;

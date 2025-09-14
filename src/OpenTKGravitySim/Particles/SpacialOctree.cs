@@ -10,7 +10,7 @@ namespace OpenTKGravitySim.Particles;
 
 
 
-internal class SpacialOctree
+public class SpacialOctree
 {
     public readonly List<SpacialOctreeNode> Nodes;
     public int NumNodes => Nodes.Count;
@@ -282,7 +282,7 @@ public struct SpacialOctreeNode(AABC boundingCube, int nextIndex = 0, int firstC
 
 
 
-    public RenderObject ToRenderObject()
+    public readonly RenderObject ToRenderObject()
     {
         Vector4 position = new((Vector3) CenterOfMass, 1.0f);
         Vector4 velocity = new((Vector3) BoundingCube.Center, 1.0f);

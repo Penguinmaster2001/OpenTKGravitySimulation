@@ -4,9 +4,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Mathematics;
-
 using OpenTKGravitySim.Graphics;
-
 using OpenTKGravitySim.Particles;
 using ErrorCode = OpenTK.Graphics.OpenGL4.ErrorCode;
 
@@ -16,36 +14,33 @@ namespace OpenTKGravitySim;
 
 
 
-internal class SimWindow : GameWindow
+public class SimWindow : GameWindow
 {
-    private readonly Camera camera;
-    private Quad windowQuad;
+    public IRenderer Renderer;
 
-    private readonly Universe universe;
+
+
+    private readonly Camera _camera;
+
+    private readonly Universe _universe;
 
     private int windowWidth;
     private int windowHeight;
 
-    private ShaderProgram shaderProgram;
-    private string vertexShaderPath = "Shaders/oneQuad.vert";
-    private string fragmentShaderPath = "Shaders/RenderableRenderer.frag";
-    // private string fragmentShaderPath = "Shaders/raymarching.frag";
 
 
-
-    public SimWindow(int width, int height, Universe universe) : base(GameWindowSettings.Default, NativeWindowSettings.Default)
+    public SimWindow(int width, int height, Universe universe, IRenderer renderer) : base(GameWindowSettings.Default, NativeWindowSettings.Default)
     {
         windowWidth = width;
         windowHeight = height;
 
         CenterWindow(new Vector2i(windowWidth, windowHeight));
 
-        camera = new(windowWidth, windowHeight, new(-750.0f, 250.0f, 0.0f));
-        shaderProgram = new();
+        _camera = new(windowWidth, windowHeight, new(-750.0f, 250.0f, 0.0f));
 
-        windowQuad = new();
+        Renderer = renderer;
 
-        this.universe = universe;
+        _universe = universe;
     }
 
 
@@ -65,8 +60,8 @@ internal class SimWindow : GameWindow
     {
         base.OnLoad();
 
-        shaderProgram.CreateNewProgram(vertexShaderPath, fragmentShaderPath);
-        
+        Renderer.Initialize();
+
         GL.Enable(EnableCap.DepthTest);
     }
 
@@ -76,9 +71,8 @@ internal class SimWindow : GameWindow
     {
         base.OnUnload();
 
-        windowQuad.Delete();
-        shaderProgram.Delete();
-        universe.Running = false;
+        Renderer.Delete();
+        _universe.Running = false;
     }
 
 
@@ -94,7 +88,7 @@ internal class SimWindow : GameWindow
         {
             CursorState = CursorState == CursorState.Grabbed ? CursorState.Normal : CursorState.Grabbed;
         }
-        camera.Update(keyboardState, mouseState, args);
+        _camera.Update(keyboardState, mouseState, args);
     }
 
 
@@ -106,17 +100,14 @@ internal class SimWindow : GameWindow
         GL.ClearColor(0.0627f, 0.0666f, 0.1019f, 1.0f);
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-        int windowSizeLocation = shaderProgram.GetUniformLocation("windowSize");
+        int windowSizeLocation = Renderer.ShaderProgram.GetUniformLocation("windowSize");
 
         GL.Uniform2(windowSizeLocation, new Vector2(windowWidth, windowHeight));
         CheckGLError();
-        CheckGLError();
-        shaderProgram.SetCameraUniforms(camera);
+        Renderer.ShaderProgram.SetCameraUniforms(_camera);
         CheckGLError();
 
-        universe.ExternalReadingBuffer = true;
-        universe.ExternalReadingBuffer = false;
-        windowQuad.Render(shaderProgram, universe.LeafNodes);
+        Renderer.Render(_universe.LeafNodes);
         CheckGLError(true);
 
         Context.SwapBuffers();

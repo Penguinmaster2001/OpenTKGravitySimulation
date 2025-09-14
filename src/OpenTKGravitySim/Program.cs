@@ -1,4 +1,5 @@
 ﻿
+using OpenTKGravitySim.Graphics;
 using OpenTKGravitySim.Particles;
 
 
@@ -13,12 +14,15 @@ public class Program
 
 
 
-    static void Main(string[] args)
+    static void Main()
     {
-        // universe.Run();
-        using (SimWindow simWindow = new(1440, 900, universe))
-        {
-            Parallel.Invoke(simWindow.Run, universe.Run);
-        }
+        string vertexShaderPath = "Shaders/oneQuad.vert";
+        string fragmentShaderPath = "Shaders/RenderableRenderer.frag";
+        var shaderProgram = new ShaderProgram(vertexShaderPath, fragmentShaderPath);
+        var quad = new Quad(shaderProgram);
+
+
+        using SimWindow simWindow = new(1440, 900, universe, quad);
+        Parallel.Invoke(simWindow.Run, universe.Run);
     }
 }

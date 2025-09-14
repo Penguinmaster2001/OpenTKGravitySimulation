@@ -8,21 +8,25 @@ namespace OpenTKGravitySim.Graphics;
 
 
 
-internal class ShaderProgram()
+public class ShaderProgram
 {
     public int ID = -1;
     public bool IsCompiled { get; private set; } = false;
+    
+    public string VertexShaderPath;
+    public string FragmentShaderPath;
 
 
 
-    public ShaderProgram(string vertexShaderPath, string fragmentShaderPath) : this()
+    public ShaderProgram(string vertexShaderPath, string fragmentShaderPath)
     {
-        CreateNewProgram(vertexShaderPath, fragmentShaderPath);
+        VertexShaderPath = vertexShaderPath;
+        FragmentShaderPath = fragmentShaderPath;
     }
 
 
 
-    public void CreateNewProgram(string vertexShaderPath, string fragmentShaderPath)
+    public void Initialize()
     {
         if (IsCompiled)
         {
@@ -31,8 +35,8 @@ internal class ShaderProgram()
 
         ID = GL.CreateProgram();
 
-        int vertexShader = CompileShader(ShaderType.VertexShader, LoadShaderSource(vertexShaderPath));
-        int fragmentShader = CompileShader(ShaderType.FragmentShader, LoadShaderSource(fragmentShaderPath));
+        int vertexShader = CompileShader(ShaderType.VertexShader, LoadShaderSource(VertexShaderPath));
+        int fragmentShader = CompileShader(ShaderType.FragmentShader, LoadShaderSource(FragmentShaderPath));
 
         GL.AttachShader(ID, vertexShader);
         GL.AttachShader(ID, fragmentShader);
@@ -44,7 +48,7 @@ internal class ShaderProgram()
         {
             string infoLog = GL.GetProgramInfoLog(ID);
             Delete();
-            throw new Exception($"Shader program linking failed\nFragment shader path: {fragmentShaderPath}, vertex shader path: {vertexShaderPath}\n{infoLog}\n{LoadShaderSource(fragmentShaderPath)}");
+            throw new Exception($"Shader program linking failed\nFragment shader path: {FragmentShaderPath}, vertex shader path: {VertexShaderPath}\n{infoLog}\n{LoadShaderSource(FragmentShaderPath)}");
         }
 
         GL.DeleteShader(vertexShader);

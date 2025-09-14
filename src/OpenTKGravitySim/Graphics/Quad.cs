@@ -1,5 +1,4 @@
 
-using System.Runtime.InteropServices;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
@@ -9,30 +8,7 @@ namespace OpenTKGravitySim.Graphics;
 
 
 
-public interface IRenderable
-{
-    RenderObject ToRenderObject();
-}
-
-
-
-[Serializable]
-public struct RenderObject(Vector4 position, Vector4 velocity, Vector4 attributes) : IRenderable
-{
-    public Vector4 Position = position;
-    public Vector4 Velocity = velocity;
-    public Vector4 Attributes = attributes;
-    public static int SizeInBytes => Marshal.SizeOf<RenderObject>();
-
-    public readonly RenderObject ToRenderObject()
-    {
-        return this;
-    }
-}
-
-
-
-internal class Quad
+public class Quad : IRenderer
 {
     private readonly List<Vector3> verts = [
         new( 1.0f,  1.0f,  0.0f), // Top Right
@@ -46,53 +22,45 @@ internal class Quad
         3, 1, 2
     ];
 
-    private readonly VAO vao;
-    private readonly VBO<Vector3> vertVBO;
-    private readonly IBO ibo;
+    private VAO vao;
+    private VBO<Vector3> vertVBO;
+    private IBO ibo;
     private int ssbo;
-    private List<RenderObject> renderObjects;
+    private readonly List<RenderObject> _renderObjects = new(1000);
+
+
+
+    public ShaderProgram ShaderProgram { get; set; }
 
 
 
 
-    public Quad()
+    public Quad(ShaderProgram shaderProgram)
     {
-        renderObjects = new(1000);
-        vao = new();
-        vertVBO = new(verts);
-
-        vao.Bind();
-        vertVBO.Bind();
-        vao.LinkToVAO(0, 3, vertVBO);
-        vertVBO.UnBind();
-        vao.UnBind();
-
-        ssbo = GL.GenBuffer();
-        
-        ibo = new(indices);
+        ShaderProgram = shaderProgram;
     }
 
 
 
-    public void Render<T>(ShaderProgram shaderProgram, List<T> renderables) where T : IRenderable
+    public void Render<T>(List<T> renderables) where T : IRenderable
     {
         // foreach (Particle particle in particles)
         // {
         //     Console.WriteLine($"{particle.Position}, {particle.Velocity}, {particle.Mass}");
         // }
         int renderObjectCount = Math.Min(1_000, renderables.Count);
-        renderObjects.Clear();
+        _renderObjects.Clear();
         for (uint i = 0; i < renderObjectCount; i++)
         {
-            RenderObject renderObject = renderables[(int) ((i * 110503u) % (uint) renderables.Count)].ToRenderObject();
-            renderObjects.Add(renderObject);
+            RenderObject renderObject = renderables[(int)((i * 110503u) % (uint)renderables.Count)].ToRenderObject();
+            _renderObjects.Add(renderObject);
         }
 
         // RenderObject[] renderObjects = renderables.Take(renderObjectCount).Select(renderable => renderable.ToRenderObject()).ToArray();
         int requiredSize = renderObjectCount * RenderObject.SizeInBytes;
 
-        shaderProgram.Bind();
-        shaderProgram.SetUniform1Int("numRenderables", renderObjectCount);
+        ShaderProgram.Bind();
+        ShaderProgram.SetUniform1Int("numRenderables", renderObjectCount);
 
         GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssbo);
 
@@ -102,8 +70,8 @@ internal class Quad
             Console.WriteLine($"Buffer Size: {bufferSize}, Required Size: {requiredSize}");
             GL.BufferData(BufferTarget.ShaderStorageBuffer, requiredSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
         }
-        
-        GL.BufferSubData(BufferTarget.ShaderStorageBuffer, 0, requiredSize, renderObjects.ToArray());
+
+        GL.BufferSubData(BufferTarget.ShaderStorageBuffer, 0, requiredSize, _renderObjects.ToArray());
         // IntPtr ptr = GL.MapBuffer(BufferTarget.ShaderStorageBuffer, BufferAccess.ReadOnly);
         // if (ptr != IntPtr.Zero)
         // {
@@ -124,7 +92,7 @@ internal class Quad
 
         vao.Bind();
         ibo.Bind();
-        
+
         GL.DrawElements(PrimitiveType.Triangles, indices.Count, DrawElementsType.UnsignedInt, 0);
 
         vao.UnBind();
@@ -139,5 +107,24 @@ internal class Quad
         ibo.Delete();
         vertVBO.Delete();
         vao.Delete();
+        ShaderProgram.Delete();
+    }
+
+    public void Initialize()
+    {
+        vao = new();
+        vertVBO = new(verts);
+
+        vao.Bind();
+        vertVBO.Bind();
+        vao.LinkToVAO(0, 3, vertVBO);
+        vertVBO.UnBind();
+        vao.UnBind();
+
+        ssbo = GL.GenBuffer();
+
+        ibo = new(indices);
+
+        ShaderProgram.Initialize();
     }
 }

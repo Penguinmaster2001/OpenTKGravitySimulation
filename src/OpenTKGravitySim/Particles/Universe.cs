@@ -7,7 +7,7 @@ namespace OpenTKGravitySim.Particles;
 
 
 
-internal class Universe
+public class Universe
 {
     public readonly SpacialOctree octreeA;
     public readonly SpacialOctree octreeB;
@@ -204,7 +204,7 @@ internal class Universe
         // particle.Position += new Vector4((timeStep * particle.Velocity.Xyz) + (0.5f * timeStep * timeStep * acceleration), 0.0f);
         // particle.Velocity += new Vector4(timeStep * acceleration, 0.0f);
 
-        (Vector3d pos, Vector3d vel) = RK4Integration(particle.Position, particle.Velocity);
+        (Vector3d pos, Vector3d vel) = EulerIntegration(particle.Position, particle.Velocity);
         // float massProportion = particle.Mass / TotalMass;
         particle.Velocity = vel - (TotalVelocity / NumParticles);
         particle.Position = pos - CenterOfMass;
@@ -226,16 +226,16 @@ internal class Universe
         }
 
 
-        (Vector3d, Vector3d) RK4Integration(Vector3d pos, Vector3d vel)
-        {
-            (Vector3d k1Pos, Vector3d k1Vel) = Derivatives(pos, vel);
-            (Vector3d k2Pos, Vector3d k2Vel) = Derivatives(pos + (0.5 * timeStep * k1Pos), vel + (0.5 * timeStep * k1Vel));
-            (Vector3d k3Pos, Vector3d k3Vel) = Derivatives(pos + (0.5 * timeStep * k2Pos), vel + (0.5 * timeStep * k2Vel));
-            (Vector3d k4Pos, Vector3d k4Vel) = Derivatives(pos + (timeStep * k3Pos), vel + (timeStep * k3Vel));
-            pos += (timeStep / 6.0) * (k1Pos + (2.0 * k2Pos) + (2.0 * k3Pos) + k4Pos);
-            vel += (timeStep / 6.0) * (k1Vel + (2.0 * k2Vel) + (2.0 * k3Vel) + k4Vel);
-            return (pos, vel);
-        }
+        // (Vector3d, Vector3d) RK4Integration(Vector3d pos, Vector3d vel)
+        // {
+        //     (Vector3d k1Pos, Vector3d k1Vel) = Derivatives(pos, vel);
+        //     (Vector3d k2Pos, Vector3d k2Vel) = Derivatives(pos + (0.5 * timeStep * k1Pos), vel + (0.5 * timeStep * k1Vel));
+        //     (Vector3d k3Pos, Vector3d k3Vel) = Derivatives(pos + (0.5 * timeStep * k2Pos), vel + (0.5 * timeStep * k2Vel));
+        //     (Vector3d k4Pos, Vector3d k4Vel) = Derivatives(pos + (timeStep * k3Pos), vel + (timeStep * k3Vel));
+        //     pos += (timeStep / 6.0) * (k1Pos + (2.0 * k2Pos) + (2.0 * k3Pos) + k4Pos);
+        //     vel += (timeStep / 6.0) * (k1Vel + (2.0 * k2Vel) + (2.0 * k3Vel) + k4Vel);
+        //     return (pos, vel);
+        // }
 
 
         // Returns derivatives of position and velocity as (velocity, acceleration)

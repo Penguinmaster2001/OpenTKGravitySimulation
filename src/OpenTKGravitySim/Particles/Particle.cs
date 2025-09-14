@@ -10,7 +10,7 @@ namespace OpenTKGravitySim.Particles;
 
 
 [Serializable]
-internal struct Particle(Vector3d initialPosition, Vector3d initialVelocity, double mass) : IRenderable
+public struct Particle(Vector3d initialPosition, Vector3d initialVelocity, double mass) : IRenderable
 {
     public Vector3d Position = initialPosition;
     public Vector3d Velocity = initialVelocity;
@@ -31,7 +31,7 @@ internal struct Particle(Vector3d initialPosition, Vector3d initialVelocity, dou
 
 
 
-    internal static Particle FromByteArray(byte[] data, int offset)
+    public static Particle FromByteArray(byte[] data, int offset)
     {
         int size = SizeInBytes;
         if (offset + size > data.Length)
