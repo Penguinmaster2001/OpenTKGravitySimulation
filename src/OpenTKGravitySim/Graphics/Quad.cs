@@ -48,7 +48,7 @@ public class Quad : IRenderer
         // {
         //     Console.WriteLine($"{particle.Position}, {particle.Velocity}, {particle.Mass}");
         // }
-        int renderObjectCount = Math.Min(1_000, renderables.Count);
+        int renderObjectCount = Math.Min(500, renderables.Count);
         _renderObjects.Clear();
         for (uint i = 0; i < renderObjectCount; i++)
         {
