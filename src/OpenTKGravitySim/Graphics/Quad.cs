@@ -1,4 +1,5 @@
 
+using System.Timers;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
@@ -26,7 +27,7 @@ public class Quad : IRenderer
     private VBO<Vector3> vertVBO;
     private IBO ibo;
     private int ssbo;
-    private readonly List<RenderObject> _renderObjects = new(1000);
+    private readonly List<RenderObject> _renderObjects = new(300);
 
 
 
@@ -41,18 +42,20 @@ public class Quad : IRenderer
     }
 
 
-
+    Random random = new Random();
     public void Render<T>(List<T> renderables) where T : IRenderable
     {
         // foreach (Particle particle in particles)
         // {
         //     Console.WriteLine($"{particle.Position}, {particle.Velocity}, {particle.Mass}");
         // }
-        int renderObjectCount = Math.Min(500, renderables.Count);
+        int renderObjectCount = Math.Min(300, renderables.Count);
         _renderObjects.Clear();
+
+        uint offset = (uint)random.Next();
         for (uint i = 0; i < renderObjectCount; i++)
         {
-            RenderObject renderObject = renderables[(int)((i * 110503u) % (uint)renderables.Count)].ToRenderObject();
+            RenderObject renderObject = renderables[(int)((offset + i * 110503u) % (uint)renderables.Count)].ToRenderObject();
             _renderObjects.Add(renderObject);
         }
 

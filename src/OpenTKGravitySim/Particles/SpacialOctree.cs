@@ -1,5 +1,6 @@
 
 using System.Runtime.InteropServices;
+using System.Text;
 using OpenTK.Mathematics;
 using OpenTKGravitySim.Graphics;
 
@@ -69,7 +70,7 @@ public class SpacialOctree
             Insert(particles[particleIndex]);
         }
 
-        CalculateMasses();
+        // CalculateMasses();
         // Console.WriteLine($"Depth: {CurrentDepth}, Nodes: {NumNodes}, Leaves: {NumLeafNodes}");
     }
 
@@ -82,15 +83,27 @@ public class SpacialOctree
         int nextIndex = 0;
         do
         {
-            SpacialOctreeNode node = Nodes[nextIndex];
+            var node = Nodes[nextIndex];
 
             Vector3d direction = node.CenterOfMass - position;
             double dist = direction.Length;
 
             // If the node is a leaf or the size - distance ratio is small enough, and the square distance is large enough (to ensure the particle doesn't affect itself and for numerical stability)
-            if ((node.IsLeaf || node.IsEmpty || node.BoundingCube.Size < dist * MaxSizeDistanceRatio) && dist > 0.00001)
+
+            if (dist < 0.0001 || node.IsEmpty)
+            {
+                nextIndex = node.NextIndex;
+            }
+            else if (node.IsLeaf || node.BoundingCube.Size < dist * MaxSizeDistanceRatio)
             {
                 gravForce += direction.Normalized() * node.Mass / (dist * dist);
+
+                if (gravForce.X != 0.0 && !double.IsNormal(gravForce.X)
+                 || gravForce.Y != 0.0 && !double.IsNormal(gravForce.Y)
+                 || gravForce.Z != 0.0 && !double.IsNormal(gravForce.Z))
+                {
+                    throw new Exception($"Bad grav force");
+                }
 
                 // We can move on to the next node
                 nextIndex = node.NextIndex;
@@ -100,15 +113,9 @@ public class SpacialOctree
             {
                 nextIndex = node.FirstChildIndex;
             }
-
-            if (gravForce.X != 0.0 && !double.IsNormal(gravForce.X)
-             || gravForce.Y != 0.0 && !double.IsNormal(gravForce.Y)
-             || gravForce.Z != 0.0 && !double.IsNormal(gravForce.Z))
-            {
-                throw new Exception($"Bad grav force");
-            }
         }
         while (nextIndex > 0);
+
 
         return gravForce;
     }
@@ -117,45 +124,92 @@ public class SpacialOctree
 
     private void Insert(Particle particle)
     {
-        // Start at root
-        int nodeIndex = 0;
-        int depth = 0;
+        Insert(0, particle.Position, particle.Mass);
 
-        // Find leaf node
-        while (depth < MaxDepth && Nodes[nodeIndex].IsInternal)
-        {
-            nodeIndex = Nodes[nodeIndex].GetOctContainingIndex(particle.Position);
-            depth++;
-        }
+        //     // Start at root
+        //     int nodeIndex = 0;
+        //     int depth = 0;
 
-        // Add particle if leaf node is empty
-        if (Nodes[nodeIndex].IsEmpty)
+        //     // Find leaf node
+        //     while (depth < MaxDepth && Nodes[nodeIndex].IsInternal)
+        //     {
+        //         nodeIndex = Nodes[nodeIndex].GetOctContainingIndex(particle.Position);
+        //         depth++;
+        //     }
+
+        //     // Add particle if leaf node is empty
+        //     if (Nodes[nodeIndex].IsEmpty)
+        //     {
+        //         SpacialOctreeNode emptyNode = Nodes[nodeIndex];
+        //         emptyNode.Mass = particle.Mass;
+        //         emptyNode.CenterOfMass = particle.Position;
+        //         Nodes[nodeIndex] = emptyNode;
+        //         return;
+        //     }
+
+        //     Vector3d nodeCenterOfMass = Nodes[nodeIndex].CenterOfMass;
+        //     double nodeMass = Nodes[nodeIndex].Mass;
+
+        //     int insertIndex = nodeIndex;
+        //     // Subdivide nodes until the positions are in separate quadrants
+        //     while (insertIndex == nodeIndex && depth < MaxDepth)
+        //     {
+        //         nodeIndex = insertIndex;
+        //         Subdivide(nodeIndex);
+
+        //         insertIndex = Nodes[nodeIndex].GetOctContainingIndex(particle.Position);
+        //         nodeIndex = Nodes[nodeIndex].GetOctContainingIndex(nodeCenterOfMass);
+        //         depth++;
+        //     }
+
+        //     // Insert masses into the new nodes
+        //     InsertIntoNode(nodeIndex, nodeCenterOfMass, nodeMass);
+        //     InsertIntoNode(insertIndex, particle.Position, particle.Mass);
+    }
+
+
+
+    private void Insert(int nodeIndex, Vector3d position, double mass)
+    {
+        var node = Nodes[nodeIndex];
+
+        // If node x does not contain a body, put the new body b here.
+        if (node.IsEmpty)
         {
-            SpacialOctreeNode emptyNode = Nodes[nodeIndex];
-            emptyNode.Mass = particle.Mass;
-            emptyNode.CenterOfMass = particle.Position;
-            Nodes[nodeIndex] = emptyNode;
+            node.Mass = mass;
+            node.CenterOfMass = position;
+            Nodes[nodeIndex] = node;
             return;
         }
 
-        Vector3d nodeCenterOfMass = Nodes[nodeIndex].CenterOfMass;
-        double nodeMass = Nodes[nodeIndex].Mass;
-
-        int insertIndex = nodeIndex;
-        // Subdivide nodes until the positions are in separate quadrants
-        while (insertIndex == nodeIndex && depth < MaxDepth)
+        // If node x is an internal node, update the center-of-mass and total mass of x.
+        // Recursively insert the body b in the appropriate quadrant.
+        if (node.IsInternal)
         {
-            nodeIndex = insertIndex;
-            Subdivide(nodeIndex);
+            Insert(node.GetOctContainingIndex(position), position, mass);
 
-            insertIndex = Nodes[nodeIndex].GetOctContainingIndex(particle.Position);
-            nodeIndex = Nodes[nodeIndex].GetOctContainingIndex(nodeCenterOfMass);
-            depth++;
+            node.CenterOfMass = ((node.Mass * node.CenterOfMass) + (mass * position)) / (node.Mass + mass);
+            node.Mass += mass;
+
+            Nodes[nodeIndex] = node;
+            return;
         }
 
-        // Insert masses into the new nodes
-        InsertIntoNode(nodeIndex, nodeCenterOfMass, nodeMass);
-        InsertIntoNode(insertIndex, particle.Position, particle.Mass);
+        // If node x is an external node, say containing a body named c, then there are two bodies
+        // b and c in the same region. Subdivide the region further by creating four children.
+        // Then, recursively insert both b and c into the appropriate quadrant(s). Since b and c may still end up in
+        // the same quadrant, there may be several subdivisions during a single insertion. Finally,
+        // update the center-of-mass and total mass of x.
+        Subdivide(nodeIndex);
+
+        Insert(Nodes[nodeIndex].GetOctContainingIndex(position), position, mass);
+        Insert(Nodes[nodeIndex].GetOctContainingIndex(node.CenterOfMass), node.CenterOfMass, node.Mass);
+        node = Nodes[nodeIndex];
+
+        node.CenterOfMass = ((node.Mass * node.CenterOfMass) + (mass * position)) / (node.Mass + mass);
+        node.Mass += mass;
+
+        Nodes[nodeIndex] = node;
     }
 
 
@@ -208,23 +262,33 @@ public class SpacialOctree
             SpacialOctreeNode internalNode = Nodes[InternalNodeIndices[internalIndex]];
 
             double mass = Nodes[internalNode.FirstChildIndex + 0].Mass
-                       + Nodes[internalNode.FirstChildIndex + 1].Mass
-                       + Nodes[internalNode.FirstChildIndex + 2].Mass
-                       + Nodes[internalNode.FirstChildIndex + 3].Mass
-                       + Nodes[internalNode.FirstChildIndex + 4].Mass
-                       + Nodes[internalNode.FirstChildIndex + 5].Mass
-                       + Nodes[internalNode.FirstChildIndex + 6].Mass
-                       + Nodes[internalNode.FirstChildIndex + 7].Mass;
+                        + Nodes[internalNode.FirstChildIndex + 1].Mass
+                        + Nodes[internalNode.FirstChildIndex + 2].Mass
+                        + Nodes[internalNode.FirstChildIndex + 3].Mass
+                        + Nodes[internalNode.FirstChildIndex + 4].Mass
+                        + Nodes[internalNode.FirstChildIndex + 5].Mass
+                        + Nodes[internalNode.FirstChildIndex + 6].Mass
+                        + Nodes[internalNode.FirstChildIndex + 7].Mass;
 
             Vector3d centerOfMass = ((Nodes[internalNode.FirstChildIndex + 0].Mass * Nodes[internalNode.FirstChildIndex + 0].CenterOfMass)
-                                  + (Nodes[internalNode.FirstChildIndex + 1].Mass * Nodes[internalNode.FirstChildIndex + 1].CenterOfMass)
-                                  + (Nodes[internalNode.FirstChildIndex + 2].Mass * Nodes[internalNode.FirstChildIndex + 2].CenterOfMass)
-                                  + (Nodes[internalNode.FirstChildIndex + 3].Mass * Nodes[internalNode.FirstChildIndex + 3].CenterOfMass)
-                                  + (Nodes[internalNode.FirstChildIndex + 4].Mass * Nodes[internalNode.FirstChildIndex + 4].CenterOfMass)
-                                  + (Nodes[internalNode.FirstChildIndex + 5].Mass * Nodes[internalNode.FirstChildIndex + 5].CenterOfMass)
-                                  + (Nodes[internalNode.FirstChildIndex + 6].Mass * Nodes[internalNode.FirstChildIndex + 6].CenterOfMass)
-                                  + (Nodes[internalNode.FirstChildIndex + 7].Mass * Nodes[internalNode.FirstChildIndex + 7].CenterOfMass))
-                                 / mass;
+                                   + (Nodes[internalNode.FirstChildIndex + 1].Mass * Nodes[internalNode.FirstChildIndex + 1].CenterOfMass)
+                                   + (Nodes[internalNode.FirstChildIndex + 2].Mass * Nodes[internalNode.FirstChildIndex + 2].CenterOfMass)
+                                   + (Nodes[internalNode.FirstChildIndex + 3].Mass * Nodes[internalNode.FirstChildIndex + 3].CenterOfMass)
+                                   + (Nodes[internalNode.FirstChildIndex + 4].Mass * Nodes[internalNode.FirstChildIndex + 4].CenterOfMass)
+                                   + (Nodes[internalNode.FirstChildIndex + 5].Mass * Nodes[internalNode.FirstChildIndex + 5].CenterOfMass)
+                                   + (Nodes[internalNode.FirstChildIndex + 6].Mass * Nodes[internalNode.FirstChildIndex + 6].CenterOfMass)
+                                   + (Nodes[internalNode.FirstChildIndex + 7].Mass * Nodes[internalNode.FirstChildIndex + 7].CenterOfMass))
+                                  / mass;
+
+            if (Math.Abs(internalNode.Mass - mass) > 0.001)
+            {
+                Console.WriteLine($"Mass changed");
+            }
+
+            if ((internalNode.CenterOfMass - centerOfMass).Length > 0.001)
+            {
+                Console.WriteLine($"com changed");
+            }
 
             internalNode.Mass = mass;
             internalNode.CenterOfMass = centerOfMass;
@@ -249,6 +313,49 @@ public class SpacialOctree
         Leaves.Clear();
         Nodes.Clear();
         InternalNodeIndices.Clear();
+    }
+
+
+
+    public string EdgeList()
+    {
+        var sb = new StringBuilder();
+
+        // int nextIndex = 0;
+        // do
+        // {
+        //     int prevIndex = nextIndex;
+        //     var node = Nodes[nextIndex];
+        //     if (node.IsLeaf || node.IsEmpty)
+        //     {
+        //         nextIndex = node.NextIndex;
+        //     }
+        //     else
+        //     {
+        //         nextIndex = node.FirstChildIndex;
+        //     }
+        //     sb.AppendLine($"{prevIndex} {nextIndex}");
+        // }
+        // while (nextIndex > 0);
+
+        for (int i = 0; i < Nodes.Count; i++)
+        {
+            var node = Nodes[i];
+
+            if (node.FirstChildIndex > 0)
+            {
+                sb.AppendLine($"{i} {node.FirstChildIndex + 0}")
+                  .AppendLine($"{i} {node.FirstChildIndex + 1}")
+                  .AppendLine($"{i} {node.FirstChildIndex + 2}")
+                  .AppendLine($"{i} {node.FirstChildIndex + 3}")
+                  .AppendLine($"{i} {node.FirstChildIndex + 4}")
+                  .AppendLine($"{i} {node.FirstChildIndex + 5}")
+                  .AppendLine($"{i} {node.FirstChildIndex + 6}")
+                  .AppendLine($"{i} {node.FirstChildIndex + 7}");
+            }
+        }
+
+        return sb.ToString();
     }
 }
 
@@ -309,7 +416,7 @@ public readonly struct AABC(Vector3d center, double size)
 
     public bool IsInside(Vector3d point)
     {
-        double halfSize = 0.5 * Size + 0.01;
+        double halfSize = 0.5 * Size + 0.0001;
         Vector3d localPoint = point - Center;
         return Math.Abs(localPoint.X) <= halfSize
             && Math.Abs(localPoint.Y) <= halfSize

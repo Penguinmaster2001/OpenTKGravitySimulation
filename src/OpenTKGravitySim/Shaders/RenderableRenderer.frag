@@ -27,7 +27,7 @@ uniform mat4 view;
 uniform mat4 projection;
 
 
-float maxDist = 50000.0f;
+float maxDist = 50000.0;
 
 
 

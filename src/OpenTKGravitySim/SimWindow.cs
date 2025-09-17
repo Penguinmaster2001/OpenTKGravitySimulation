@@ -72,6 +72,7 @@ public class SimWindow : GameWindow
         base.OnUnload();
 
         Renderer.Delete();
+        _universe.Paused = false;
         _universe.Running = false;
     }
 
@@ -87,6 +88,11 @@ public class SimWindow : GameWindow
         if (keyboardState.IsKeyReleased(Keys.Escape))
         {
             CursorState = CursorState == CursorState.Grabbed ? CursorState.Normal : CursorState.Grabbed;
+        }
+
+        if (keyboardState.IsKeyReleased(Keys.P))
+        {
+            _universe.Paused = !_universe.Paused;
         }
         _camera.Update(keyboardState, mouseState, args);
     }

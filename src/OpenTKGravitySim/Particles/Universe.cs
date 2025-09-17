@@ -11,14 +11,19 @@ namespace OpenTKGravitySim.Particles;
 public class Universe
 {
     public readonly SpacialOctree _octree;
-    public readonly List<Particle> _particles;
-    public List<Particle> Particles => [.. _particles];
+    public List<Particle> _refParticles => _useBufA ? _particleBufA : _particleBufB;
+    public List<Particle> _updateParticles => _useBufA ? _particleBufB : _particleBufA;
+    private bool _useBufA = true;
+    private readonly List<Particle> _particleBufA;
+    private readonly List<Particle> _particleBufB;
+    public List<Particle> Particles => [.. _refParticles];
     public List<SpacialOctreeNode> LeafNodes => [.. _octree.Leaves];
     public int NumParticles { get; private set; }
-    public double GravMult { get; private set; } = 100.0;
+    public double GravMult { get; private set; } = 5000.0;
 
     public double TimeStep;
     public bool Running;
+    public bool Paused = true;
     public double SimulationTime = 0.0;
     public Vector3d TotalMomentum;
     public Vector3d TotalVelocity;
@@ -27,19 +32,20 @@ public class Universe
 
 
 
-    public Universe(int numParticles, double size, double timeStep = 0.001)
+    public Universe(int numParticles, double size, double timeStep = 0.01)
     {
         TimeStep = timeStep;
         Running = false;
 
-        _octree = new(0.05, 32);
+        _octree = new(0.2, 32);
 
-        _particles = new(NumParticles);
+        _particleBufA = new(NumParticles);
+        _particleBufB = new(NumParticles);
 
         // particleBufferA.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
         // particleBufferB.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
-        AddParticlesEllipse(numParticles / 2, new(500.0f, -50.0f, 1000.0f), 0.0 * 0.05 * -Vector3d.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 50.0, size, size / 50.0);
-        AddParticlesEllipse(numParticles / 2, new(-500.0f, 50.0f, 1000.0f), 0.0 * 0.05 * Vector3d.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 50.0, size, size / 50.0);
+        AddParticlesEllipse(numParticles / 2, new(500.0f, -50.0f, 1000.0f), 0.0 * 0.05 * -Vector3d.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 20.0, size, size / 50.0);
+        AddParticlesEllipse(numParticles / 2, new(-500.0f, 50.0f, 1000.0f), 0.0 * 0.05 * Vector3d.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 20.0, size, size / 50.0);
         // AddParticlesCluster(numParticles, 3, Vector3d.Zero, 2.0, 1.0, 10.0, size, size / 4.0);
         // AddParticlesEllipse(numParticles / 2, new(-1000.0, 50.0, 0.0), 100.0 *  Vector3d.UnitX, 2.0 * Vector3d.UnitZ, Vector3d.UnitY, 50.0, size, size / 50.0);
 
@@ -49,9 +55,13 @@ public class Universe
         // particleBufferB.Add(new(new(200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 0.0f, 20.0f, 0.0f), 10.0f));
         // // particleBufferB.Add(new(new(-200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 20.0f, 0.0f, 0.0f), 10.0f));
 
-        _octree.Build(_particles);
+        _octree.Build(_refParticles);
 
-        NumParticles = Math.Min(_particles.Count, _particles.Count);
+        // Console.WriteLine(_octree.EdgeList());
+
+        NumParticles = Math.Min(_refParticles.Count, _updateParticles.Count);
+
+        BalanceParticles();
     }
 
 
@@ -70,14 +80,14 @@ public class Universe
         for (int i = 0; i < numParticles; i++)
         {
             double angle = random.NextDouble() * Math.Tau;
-            double radius = (0.05 * scale) + (random.NextDouble() * scale);
+            double radius = (0.3 * scale) + (random.NextDouble() * scale);
             double offPlane = (random.NextDouble() - 0.5) * 2.0 * maxDistanceOffPlane;
 
             double mass = random.NextDouble() * 2.0 * aveMass;
 
             Vector3d newPos = center + (Math.Cos(angle) * radius * majorAxis) + (Math.Sin(angle) * radius * minorAxis) + (offPlane * normal);
             // Vector4 velocity = new(10.0f * (random.NextSingle() - 0.5f), 10.0f * (random.NextSingle() - 0.5f), 10.0f * (random.NextSingle() - 0.5f), 0.0f) + ellipseVelocity;
-            Vector3d velocity = Vector3d.Zero;//ellipseVelocity + Math.Sqrt(0.05 / (newPos - center).Length) * Vector3d.Cross(newPos - center, normal).Normalized();
+            Vector3d velocity = Vector3d.Zero; // ellipseVelocity + Math.Sqrt(5 / (newPos - center).Length) * Vector3d.Cross(newPos - center, normal).Normalized();
             Particle newParticle = new(newPos, velocity, mass);
 
             if (!newParticle.IsValid())
@@ -85,7 +95,8 @@ public class Universe
                 throw new Exception($"Invalid particle!!! {i}: {newParticle}\n");
             }
 
-            _particles.Add(newParticle);
+            _particleBufA.Add(newParticle);
+            _particleBufB.Add(newParticle);
         }
     }
 
@@ -109,7 +120,7 @@ public class Universe
                 double mass = random.NextDouble() * 2.0 * aveMass;
                 Particle newParticle = new(particlePosition, particleVelocity, mass);
 
-                _particles.Add(newParticle);
+                _refParticles.Add(newParticle);
             }
         }
     }
@@ -130,16 +141,35 @@ public class Universe
         CenterOfMass = Vector3d.Zero;
         TotalMass = 0.0;
 
-        for (int particle = 0; particle < _particles.Count; particle++)
+        for (int particle = 0; particle < _refParticles.Count; particle++)
         {
-            TotalMomentum += _particles[particle].Mass * _particles[particle].Velocity;
-            TotalVelocity += _particles[particle].Velocity;
-            CenterOfMass += _particles[particle].Mass * _particles[particle].Position;
-            TotalMass += _particles[particle].Mass;
+            TotalMomentum += _refParticles[particle].Mass * _refParticles[particle].Velocity;
+            TotalVelocity += _refParticles[particle].Velocity;
+            CenterOfMass += _refParticles[particle].Mass * _refParticles[particle].Position;
+            TotalMass += _refParticles[particle].Mass;
         }
         CenterOfMass /= TotalMass;
+
+        _useBufA = !_useBufA;
     }
 
+
+
+    private void BalanceParticles()
+    {
+        UpdateGlobals();
+
+        for (int p = 0; p < NumParticles; p++)
+        {
+            var particle = _refParticles[p];
+            particle.Position -= CenterOfMass;
+            _refParticles[p] = particle;
+
+            particle = _updateParticles[p];
+            particle.Position -= CenterOfMass;
+            _updateParticles[p] = particle;
+        }
+    }
 
 
 
@@ -152,6 +182,8 @@ public class Universe
 
         while (Running)
         {
+            if (Paused) continue;
+
             // BuildNextTree();
 
             // for (int i = 0; i < NumParticles; i++)
@@ -159,7 +191,7 @@ public class Universe
             //     StepParticle(i);
             // }
 
-            UpdateGlobals();
+            BalanceParticles();
 
             BuildNextTree();
 
@@ -174,8 +206,8 @@ public class Universe
             //     _particleStopwatch.Stop();
             // });
 
-            Console.WriteLine($"tree:\t\t{_buildTreeStopwatch.ElapsedMilliseconds}");
-            Console.WriteLine($"particles:\t{_particleStopwatch.ElapsedMilliseconds}");
+            Console.WriteLine($"tree:\t\t{_buildTreeStopwatch.Elapsed}");
+            Console.WriteLine($"particles:\t{_particleStopwatch.Elapsed}");
 
             // Parallel.For(0, NumParticles, StepParticle);
 
@@ -193,48 +225,62 @@ public class Universe
 
     private void StepParticle(int particleIndex)
     {
-        Particle particle = _particles[particleIndex];
+        Particle particle = _refParticles[particleIndex];
 
-        // Vector3 gravForce = 1000.0f * GetPrevTree().CalcGravForce(particle.Position.Xyz);
-
+        // Vector3d gravForce = Vector3d.Zero;
         // for (int otherParticleIndex = 0; otherParticleIndex < NumParticles; otherParticleIndex++)
         // {
         //     if (particleIndex == otherParticleIndex) continue;
 
-        //     Particle otherParticle = prevBuffer[otherParticleIndex];
+        //     Particle otherParticle = _refParticles[otherParticleIndex];
 
-        //     Vector3 direction = otherParticle.Position.Xyz - particle.Position.Xyz;
-        //     float distance = MathF.Max(direction.Length, 0.005f);
+        //     Vector3d direction = otherParticle.Position - particle.Position;
+        //     double distance = direction.Length;
         //     direction /= distance;
 
-        //     gravForce += 1000.0f * (otherParticle.Mass.X / (distance * distance)) * direction;
+        //     gravForce += GravMult * (otherParticle.Mass / (distance * distance)) * direction;
         // }
 
-        // Vector3 acceleration = gravForce / particle.Mass.X;
+        var octreeGF = GravMult * _octree.CalcGravForce(particle.Position);
+        // var ngfN = gravForce.Normalized();
+        // var ogfN = octreeGF.Normalized();
 
-        // particle.Position += new Vector4((timeStep * particle.Velocity.Xyz) + (0.5f * timeStep * timeStep * acceleration), 0.0f);
-        // particle.Velocity += new Vector4(timeStep * acceleration, 0.0f);
+        // if ((ngfN - ogfN).Length > 0.01)
+        // {
+        //     Paused = true;
+        //     Console.WriteLine($"{particleIndex}:\n{gravForce.Length:0.000}\n{octreeGF.Length:0.000}\n{ngfN.X:0.000}\t{ngfN.Y:0.000}\t{ngfN.Z:0.000}\n{ogfN.X:0.000}\t{ogfN.Y:0.000}\t{ogfN.Z:0.000}\n{(ngfN - ogfN).Length:0.000}\n\n\n");
+        // }
 
-        (Vector3d pos, Vector3d vel) = EulerIntegration(particle.Position, particle.Velocity);
-        // float massProportion = particle.Mass / TotalMass;
-        particle.Velocity = vel - (TotalVelocity / NumParticles);
-        particle.Position = pos - CenterOfMass;
-
-        if (!particle.IsValid())
+        var force = octreeGF;
+        if (force.Length > GravMult * 100.0)
         {
-            throw new Exception($"Invalid particle!!! {particleIndex}: {particle}\n");
+            force = GravMult * 100.0 * force.Normalized();
         }
 
-        _particles[particleIndex] = particle;
+        Vector3d acceleration = force / particle.Mass;
+
+        particle.Position += new Vector3d((TimeStep * particle.Velocity) + (0.5 * TimeStep * TimeStep * acceleration));
+        particle.Velocity += new Vector3d(TimeStep * acceleration);
+
+        // (Vector3d pos, Vector3d vel) = EulerIntegration(particle.Position, particle.Velocity);
+        // particle.Velocity -= TotalVelocity / NumParticles;
+        // particle.Position -= CenterOfMass;
+
+        // if (!particle.IsValid())
+        // {
+        //     throw new Exception($"Invalid particle!!! {particleIndex}: {particle}\n");
+        // }
+
+        _updateParticles[particleIndex] = particle;
 
 
-        (Vector3d, Vector3d) EulerIntegration(Vector3d pos, Vector3d vel)
-        {
-            (vel, Vector3d acc) = Derivatives(pos, vel);
-            pos += (TimeStep * vel) + (0.5 * TimeStep * TimeStep * acc);
-            vel += TimeStep * acc;
-            return (pos, vel);
-        }
+        // (Vector3d, Vector3d) EulerIntegration(Vector3d pos, Vector3d vel)
+        // {
+        //     (vel, Vector3d acc) = Derivatives(pos, vel);
+        //     pos += (TimeStep * vel) + (0.5 * TimeStep * TimeStep * acc);
+        //     vel += TimeStep * acc;
+        //     return (pos, vel);
+        // }
 
 
         // (Vector3d, Vector3d) RK4Integration(Vector3d pos, Vector3d vel)
@@ -250,10 +296,10 @@ public class Universe
 
 
         // Returns derivatives of position and velocity as (velocity, acceleration)
-        (Vector3d velocity, Vector3d acceleration) Derivatives(Vector3d position, Vector3d velocity)
-        {
-            return (velocity, Vector3d.Clamp(GravMult * _octree.CalcGravForce(position) / particle.Mass, 1000.0 * -Vector3d.One, 1000.0 * Vector3d.One));
-        }
+        // (Vector3d velocity, Vector3d acceleration) Derivatives(Vector3d position, Vector3d velocity)
+        // {
+        //     return (velocity, Vector3d.Clamp(GravMult * _octree.CalcGravForce(position) / particle.Mass, 1000.0 * -Vector3d.One, 1000.0 * Vector3d.One));
+        // }
     }
 
 
@@ -262,7 +308,9 @@ public class Universe
     private void BuildNextTree()
     {
         _buildTreeStopwatch.Restart();
-        _octree.Build(_particles);
+        _octree.Build(_refParticles);
         _buildTreeStopwatch.Stop();
+
+        // Console.WriteLine(_octree.EdgeList());
     }
 }
