@@ -24,7 +24,7 @@ public class SpacialOctree
 
 
 
-    public SpacialOctree(double maxSizeDistanceRatio, int maxDepth)
+    public SpacialOctree(double maxSizeDistanceRatio, int maxDepth = 32)
     {
         Nodes = [];
         Leaves = [];

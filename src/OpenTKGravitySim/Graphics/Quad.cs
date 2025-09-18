@@ -1,5 +1,4 @@
 
-using System.Timers;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
@@ -23,9 +22,9 @@ public class Quad : IRenderer
         3, 1, 2
     ];
 
-    private VAO vao;
-    private VBO<Vector3> vertVBO;
-    private IBO ibo;
+    private VAO? vao;
+    private VBO<Vector3>? vertVBO;
+    private IBO? ibo;
     private int ssbo;
     private readonly List<RenderObject> _renderObjects = new(300);
 
@@ -45,6 +44,8 @@ public class Quad : IRenderer
     Random random = new Random();
     public void Render<T>(List<T> renderables) where T : IRenderable
     {
+        if (vao is null || vertVBO is null || ibo is null) return;
+
         // foreach (Particle particle in particles)
         // {
         //     Console.WriteLine($"{particle.Position}, {particle.Velocity}, {particle.Mass}");
@@ -107,16 +108,16 @@ public class Quad : IRenderer
 
     public void Delete()
     {
-        ibo.Delete();
-        vertVBO.Delete();
-        vao.Delete();
+        ibo?.Delete();
+        vertVBO?.Delete();
+        vao?.Delete();
         ShaderProgram.Delete();
     }
 
-    public void Initialize()
+    public bool Initialize()
     {
         vao = new();
-        vertVBO = new(verts);
+        vertVBO = new([.. verts]);
 
         vao.Bind();
         vertVBO.Bind();
@@ -126,8 +127,8 @@ public class Quad : IRenderer
 
         ssbo = GL.GenBuffer();
 
-        ibo = new(indices);
+        ibo = new([.. indices]);
 
-        ShaderProgram.Initialize();
+        return ShaderProgram.Initialize();
     }
 }

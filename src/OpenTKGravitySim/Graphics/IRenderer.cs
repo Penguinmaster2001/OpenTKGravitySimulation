@@ -13,7 +13,7 @@ public interface IRenderer
 
 
 
-    void Initialize();
+    bool Initialize();
 
 
 

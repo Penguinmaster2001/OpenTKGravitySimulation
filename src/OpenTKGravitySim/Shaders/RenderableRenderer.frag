@@ -10,8 +10,6 @@ struct Renderable
     vec4 attributes;
 };
 
-// const int particleSizeFloats = 12;
-
 
 
 layout(std430, binding = 0) buffer Buf {

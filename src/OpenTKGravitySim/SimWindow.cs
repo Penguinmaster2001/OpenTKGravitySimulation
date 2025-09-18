@@ -6,7 +6,6 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Mathematics;
 using OpenTKGravitySim.Graphics;
 using OpenTKGravitySim.Particles;
-using ErrorCode = OpenTK.Graphics.OpenGL4.ErrorCode;
 
 
 
@@ -60,7 +59,12 @@ public class SimWindow : GameWindow
     {
         base.OnLoad();
 
-        Renderer.Initialize();
+        if (!Renderer.Initialize())
+        {
+            Console.WriteLine("Failed to init renderer");
+
+            Close();
+        }
 
         GL.Enable(EnableCap.DepthTest);
     }
@@ -94,6 +98,7 @@ public class SimWindow : GameWindow
         {
             _universe.Paused = !_universe.Paused;
         }
+
         _camera.Update(keyboardState, mouseState, args);
     }
 
@@ -106,54 +111,10 @@ public class SimWindow : GameWindow
         GL.ClearColor(0.0627f, 0.0666f, 0.1019f, 1.0f);
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-        int windowSizeLocation = Renderer.ShaderProgram.GetUniformLocation("windowSize");
-
-        GL.Uniform2(windowSizeLocation, new Vector2(windowWidth, windowHeight));
-        CheckGLError();
         Renderer.ShaderProgram.SetCameraUniforms(_camera);
-        CheckGLError();
 
         Renderer.Render(_universe.Particles);
-        CheckGLError(true);
 
         Context.SwapBuffers();
-
-        // Console.WriteLine($"Simulation time: {universe.SimulationTime}");
-    }
-
-
-
-    public static string LoadShaderSource(string filePath)
-    {
-        string shaderSource = "";
-
-        try
-        {
-            using (StreamReader reader = new(filePath))
-            {
-                shaderSource = reader.ReadToEnd();
-            }
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"Failed to load shader!!\nFilepath: {filePath}\n{e.Message}");
-        }
-
-        return shaderSource;
-    }
-
-
-    int errorCheckNum = 0;
-    private void CheckGLError(bool reset = false)
-    {
-        ErrorCode error = GL.GetError();
-        if (error != ErrorCode.NoError)
-        {
-            Console.WriteLine($"OpenGL error {errorCheckNum}: {error}");
-        }
-
-        if (reset) errorCheckNum = 0;
-        else errorCheckNum++;
     }
 }
-

@@ -12,7 +12,7 @@ public class ShaderProgram
 {
     public int ID = -1;
     public bool IsCompiled { get; private set; } = false;
-    
+
     public string VertexShaderPath;
     public string FragmentShaderPath;
 
@@ -26,8 +26,9 @@ public class ShaderProgram
 
 
 
-    public void Initialize()
+    public bool Initialize()
     {
+        var succeeded = true;
         if (IsCompiled)
         {
             Delete();
@@ -48,14 +49,24 @@ public class ShaderProgram
         {
             string infoLog = GL.GetProgramInfoLog(ID);
             Delete();
-            throw new Exception($"Shader program linking failed\nFragment shader path: {FragmentShaderPath}, vertex shader path: {VertexShaderPath}\n{infoLog}\n{LoadShaderSource(FragmentShaderPath)}");
+            var msg = $"Shader program linking failed\nFragment shader path: {FragmentShaderPath}, vertex shader path: {VertexShaderPath}\n{infoLog}\n{LoadShaderSource(FragmentShaderPath)}";
+            Console.WriteLine(msg);
+
+            succeeded = false;
         }
 
         GL.DeleteShader(vertexShader);
         GL.DeleteShader(fragmentShader);
 
-        IsCompiled = true;
-        Bind();
+        if (succeeded)
+        {
+            IsCompiled = true;
+            Bind();
+            return true;
+        }
+        
+        Delete();
+        return false;
     }
 
 
@@ -70,7 +81,7 @@ public class ShaderProgram
     }
 
 
-    
+
     public void SetUniform(string uniformName, Action<int> setUniformAction)
     {
         int location = GetUniformLocation(uniformName);
@@ -137,7 +148,7 @@ public class ShaderProgram
     public void Delete()
     {
         IsCompiled = false;
-        ID = -1;
         GL.DeleteProgram(ID);
+        ID = -1;
     }
 }

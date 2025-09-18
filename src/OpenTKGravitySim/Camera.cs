@@ -11,7 +11,6 @@ namespace OpenTKGravitySim;
 
 public class Camera
 {
-    // TODO: These should be from another class that manages the screen
     private float _screenWidth;
     public float ScreenWidth
     {
@@ -47,7 +46,7 @@ public class Camera
 
     private float nearClip = 1.0f;
     private float farClip = 50_000.0f;
-    private float sensitivity = 10.0f;
+    private float sensitivity = 1.0f;
     private float MaxPitch = 89.99f;
     private float MinPitch = -89.99f;
 
@@ -139,7 +138,7 @@ public class Camera
         else if (keyboardState.IsKeyDown(Keys.LeftShift))
         {
             sensitivity += 100.0f * scrollAmount;
-            sensitivity = MathHelper.Clamp(sensitivity, 1.0f, 1000.0f);
+            sensitivity = MathHelper.Clamp(sensitivity, 0.1f, 1000.0f);
         }
         else
         {
@@ -161,7 +160,7 @@ public class Camera
             Vector2 mouseDelta = smoothMousePos - mouseLastPos;
             mouseLastPos = smoothMousePos;
 
-            RotationEuler += frameDelta * (FOV / 180.0f) * sensitivity * mouseDelta;
+            RotationEuler += sensitivity * mouseDelta * FOV / 180.0f;
 
             if (RotationEuler.Y > MaxPitch) RotationEuler.Y = MaxPitch;
             else if (RotationEuler.Y < MinPitch) RotationEuler.Y = MinPitch;

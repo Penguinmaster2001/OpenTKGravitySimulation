@@ -37,27 +37,15 @@ public class Universe
         TimeStep = timeStep;
         Running = false;
 
-        _octree = new(0.2, 32);
+        _octree = new(0.5);
 
         _particleBufA = new(NumParticles);
         _particleBufB = new(NumParticles);
 
-        // particleBufferA.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
-        // particleBufferB.Add(new(new(0.0f, 0.0f, 0.0f, 1.0f), Vector4.Zero, 5_000_000.0f));
         AddParticlesEllipse(numParticles / 2, new(500.0f, -50.0f, 1000.0f), 0.0 * 0.05 * -Vector3d.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 20.0, size, size / 50.0);
         AddParticlesEllipse(numParticles / 2, new(-500.0f, 50.0f, 1000.0f), 0.0 * 0.05 * Vector3d.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 20.0, size, size / 50.0);
-        // AddParticlesCluster(numParticles, 3, Vector3d.Zero, 2.0, 1.0, 10.0, size, size / 4.0);
-        // AddParticlesEllipse(numParticles / 2, new(-1000.0, 50.0, 0.0), 100.0 *  Vector3d.UnitX, 2.0 * Vector3d.UnitZ, Vector3d.UnitY, 50.0, size, size / 50.0);
-
-        // particleBufferA.Add(new(new(200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 0.0f, 20.0f, 0.0f), 10.0f));
-        // // particleBufferA.Add(new(new(-200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 20.0f, 0.0f, 0.0f), 10.0f));
-
-        // particleBufferB.Add(new(new(200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 0.0f, 20.0f, 0.0f), 10.0f));
-        // // particleBufferB.Add(new(new(-200.0f, 0.0f, 0.0f, 1.0f), new(0.0f, 20.0f, 0.0f, 0.0f), 10.0f));
 
         _octree.Build(_refParticles);
-
-        // Console.WriteLine(_octree.EdgeList());
 
         NumParticles = Math.Min(_refParticles.Count, _updateParticles.Count);
 
@@ -87,7 +75,7 @@ public class Universe
 
             Vector3d newPos = center + (Math.Cos(angle) * radius * majorAxis) + (Math.Sin(angle) * radius * minorAxis) + (offPlane * normal);
             // Vector4 velocity = new(10.0f * (random.NextSingle() - 0.5f), 10.0f * (random.NextSingle() - 0.5f), 10.0f * (random.NextSingle() - 0.5f), 0.0f) + ellipseVelocity;
-            Vector3d velocity = Vector3d.Zero; // ellipseVelocity + Math.Sqrt(5 / (newPos - center).Length) * Vector3d.Cross(newPos - center, normal).Normalized();
+            Vector3d velocity = ellipseVelocity + Math.Sqrt(5 / (newPos - center).Length) * Vector3d.Cross(newPos - center, normal).Normalized();
             Particle newParticle = new(newPos, velocity, mass);
 
             if (!newParticle.IsValid())
@@ -310,7 +298,5 @@ public class Universe
         _buildTreeStopwatch.Restart();
         _octree.Build(_refParticles);
         _buildTreeStopwatch.Stop();
-
-        // Console.WriteLine(_octree.EdgeList());
     }
 }

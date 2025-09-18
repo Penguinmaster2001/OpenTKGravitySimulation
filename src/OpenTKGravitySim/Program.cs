@@ -10,19 +10,22 @@ namespace OpenTKGravitySim;
 
 public class Program
 {
-    private static readonly Universe universe = new(10000, 500.0);
+    private static readonly Universe universe = new(20000, 500.0);
 
 
 
     static void Main()
     {
-        string vertexShaderPath = "Shaders/oneQuad.vert";
-        string fragmentShaderPath = "Shaders/RenderableRenderer.frag";
+        // string vertexShaderPath = "Shaders/oneQuad.vert";
+        // string fragmentShaderPath = "Shaders/RenderableRenderer.frag";
+        string vertexShaderPath = "Shaders/glPoints.vert";
+        string fragmentShaderPath = "Shaders/glPoints.frag";
         var shaderProgram = new ShaderProgram(vertexShaderPath, fragmentShaderPath);
-        var quad = new Quad(shaderProgram);
+        // var renderer = new Quad(shaderProgram);
+        var renderer = new PointRenderer(shaderProgram, universe.NumParticles);
 
 
-        using SimWindow simWindow = new(1440, 900, universe, quad);
+        using SimWindow simWindow = new(1440, 900, universe, renderer);
         Parallel.Invoke(simWindow.Run, universe.Run);
     }
 }
