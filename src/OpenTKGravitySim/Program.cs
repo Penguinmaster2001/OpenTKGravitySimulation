@@ -16,12 +16,9 @@ public class Program
 
     static void Main()
     {
-        // string vertexShaderPath = "Shaders/oneQuad.vert";
-        // string fragmentShaderPath = "Shaders/RenderableRenderer.frag";
         string vertexShaderPath = "Shaders/glPoints.vert";
         string fragmentShaderPath = "Shaders/glPoints.frag";
         var shaderProgram = new ShaderProgram(vertexShaderPath, fragmentShaderPath);
-        // var renderer = new Quad(shaderProgram);
         var renderer = new PointRenderer(shaderProgram, universe.NumParticles);
 
 

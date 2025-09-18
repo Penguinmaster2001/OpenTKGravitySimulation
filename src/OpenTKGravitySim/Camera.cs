@@ -137,8 +137,8 @@ public class Camera
         }
         else if (keyboardState.IsKeyDown(Keys.LeftShift))
         {
-            sensitivity += 100.0f * scrollAmount;
-            sensitivity = MathHelper.Clamp(sensitivity, 0.1f, 1000.0f);
+            sensitivity += 50.0f * scrollAmount;
+            sensitivity = MathHelper.Clamp(sensitivity, 0.1f, 10.0f);
         }
         else
         {

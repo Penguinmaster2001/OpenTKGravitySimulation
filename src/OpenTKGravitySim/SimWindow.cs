@@ -67,6 +67,9 @@ public class SimWindow : GameWindow
         }
 
         GL.Enable(EnableCap.DepthTest);
+        GL.Enable(EnableCap.VertexProgramPointSize);
+        GL.Enable(EnableCap.Blend);
+        GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.SrcColor);
     }
 
 

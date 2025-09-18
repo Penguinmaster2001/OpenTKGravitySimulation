@@ -69,9 +69,6 @@ public class SpacialOctree
         {
             Insert(particles[particleIndex]);
         }
-
-        // CalculateMasses();
-        // Console.WriteLine($"Depth: {CurrentDepth}, Nodes: {NumNodes}, Leaves: {NumLeafNodes}");
     }
 
 
@@ -89,21 +86,13 @@ public class SpacialOctree
             double dist = direction.Length;
 
             // If the node is a leaf or the size - distance ratio is small enough, and the square distance is large enough (to ensure the particle doesn't affect itself and for numerical stability)
-
             if (dist < 0.0001 || node.IsEmpty)
             {
                 nextIndex = node.NextIndex;
             }
             else if (node.IsLeaf || node.BoundingCube.Size < dist * MaxSizeDistanceRatio)
             {
-                gravForce += direction.Normalized() * node.Mass / (dist * dist);
-
-                if (gravForce.X != 0.0 && !double.IsNormal(gravForce.X)
-                 || gravForce.Y != 0.0 && !double.IsNormal(gravForce.Y)
-                 || gravForce.Z != 0.0 && !double.IsNormal(gravForce.Z))
-                {
-                    throw new Exception($"Bad grav force");
-                }
+                gravForce += direction * node.Mass / (dist * dist * dist);
 
                 // We can move on to the next node
                 nextIndex = node.NextIndex;
@@ -115,7 +104,6 @@ public class SpacialOctree
             }
         }
         while (nextIndex > 0);
-
 
         return gravForce;
     }
@@ -313,49 +301,6 @@ public class SpacialOctree
         Leaves.Clear();
         Nodes.Clear();
         InternalNodeIndices.Clear();
-    }
-
-
-
-    public string EdgeList()
-    {
-        var sb = new StringBuilder();
-
-        // int nextIndex = 0;
-        // do
-        // {
-        //     int prevIndex = nextIndex;
-        //     var node = Nodes[nextIndex];
-        //     if (node.IsLeaf || node.IsEmpty)
-        //     {
-        //         nextIndex = node.NextIndex;
-        //     }
-        //     else
-        //     {
-        //         nextIndex = node.FirstChildIndex;
-        //     }
-        //     sb.AppendLine($"{prevIndex} {nextIndex}");
-        // }
-        // while (nextIndex > 0);
-
-        for (int i = 0; i < Nodes.Count; i++)
-        {
-            var node = Nodes[i];
-
-            if (node.FirstChildIndex > 0)
-            {
-                sb.AppendLine($"{i} {node.FirstChildIndex + 0}")
-                  .AppendLine($"{i} {node.FirstChildIndex + 1}")
-                  .AppendLine($"{i} {node.FirstChildIndex + 2}")
-                  .AppendLine($"{i} {node.FirstChildIndex + 3}")
-                  .AppendLine($"{i} {node.FirstChildIndex + 4}")
-                  .AppendLine($"{i} {node.FirstChildIndex + 5}")
-                  .AppendLine($"{i} {node.FirstChildIndex + 6}")
-                  .AppendLine($"{i} {node.FirstChildIndex + 7}");
-            }
-        }
-
-        return sb.ToString();
     }
 }
 
