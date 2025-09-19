@@ -9,7 +9,7 @@ public interface IRenderer
 
 
 
-    void Render<T>(List<T> renderables) where T : IRenderable;
+    void Render<T>(T[] renderables) where T : IRenderable;
 
 
 

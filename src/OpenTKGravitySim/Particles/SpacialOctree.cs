@@ -33,12 +33,12 @@ public class SpacialOctree
 
 
 
-    public void Build(List<Particle> particles)
+    public void Build(Particle[] particles)
     {
         Clear();
 
         // There are no particles to add
-        if (particles.Count == 0)
+        if (particles.Length == 0)
         {
             Nodes.Add(new(Vector3d.Zero, 0.0));
             return;
@@ -47,7 +47,7 @@ public class SpacialOctree
         // Find largest required bounding box
         Vector3d min = particles[0].Position;
         Vector3d max = particles[0].Position;
-        for (int particleIndex = 1; particleIndex < particles.Count; particleIndex++)
+        for (int particleIndex = 1; particleIndex < particles.Length; particleIndex++)
         {
             Vector3d position = particles[particleIndex].Position;
             min = Vector3d.ComponentMin(min, position);
@@ -62,7 +62,7 @@ public class SpacialOctree
         Nodes.Add(root);
 
         // Insert each particle
-        for (int particleIndex = 0; particleIndex < particles.Count; particleIndex++)
+        for (int particleIndex = 0; particleIndex < particles.Length; particleIndex++)
         {
             Insert(particles[particleIndex]);
         }

@@ -69,7 +69,7 @@ public class SimWindow : GameWindow
         GL.Enable(EnableCap.DepthTest);
         GL.Enable(EnableCap.VertexProgramPointSize);
         GL.Enable(EnableCap.Blend);
-        GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.SrcColor);
+        GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
     }
 
 
@@ -97,7 +97,7 @@ public class SimWindow : GameWindow
             CursorState = CursorState == CursorState.Grabbed ? CursorState.Normal : CursorState.Grabbed;
         }
 
-        if (keyboardState.IsKeyReleased(Keys.P))
+        if (keyboardState.IsKeyReleased(Keys.Space))
         {
             _universe.Paused = !_universe.Paused;
         }
@@ -116,7 +116,7 @@ public class SimWindow : GameWindow
 
         Renderer.ShaderProgram.SetCameraUniforms(_camera);
 
-        Renderer.Render(_universe.Particles);
+        Renderer.Render(_universe.RefParticles);
 
         Context.SwapBuffers();
     }

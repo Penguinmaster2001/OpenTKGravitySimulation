@@ -51,7 +51,7 @@ public class PointRenderer : IRenderer
 
 
 
-    public void Render<T>(List<T> renderables) where T : IRenderable
+    public void Render<T>(T[] renderables) where T : IRenderable
     {
         if (_vao is null || _ibo is null || _positionVBO is null || _velocityVBO is null || _attributeVBO is null)
         {
@@ -59,7 +59,7 @@ public class PointRenderer : IRenderer
             return;
         }
 
-        int renderObjectCount = Math.Min(renderables.Count, _numRenderables);
+        int renderObjectCount = Math.Min(renderables.Length, _numRenderables);
 
         for (int i = 0; i < renderObjectCount; i++)
         {

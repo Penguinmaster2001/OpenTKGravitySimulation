@@ -42,7 +42,7 @@ public class Quad : IRenderer
 
 
     Random random = new Random();
-    public void Render<T>(List<T> renderables) where T : IRenderable
+    public void Render<T>(T[] renderables) where T : IRenderable
     {
         if (vao is null || vertVBO is null || ibo is null) return;
 
@@ -50,13 +50,13 @@ public class Quad : IRenderer
         // {
         //     Console.WriteLine($"{particle.Position}, {particle.Velocity}, {particle.Mass}");
         // }
-        int renderObjectCount = Math.Min(300, renderables.Count);
+        int renderObjectCount = Math.Min(300, renderables.Length);
         _renderObjects.Clear();
 
         uint offset = (uint)random.Next();
         for (uint i = 0; i < renderObjectCount; i++)
         {
-            RenderObject renderObject = renderables[(int)((offset + i * 110503u) % (uint)renderables.Count)].ToRenderObject();
+            RenderObject renderObject = renderables[(int)((offset + i * 110503u) % (uint)renderables.Length)].ToRenderObject();
             _renderObjects.Add(renderObject);
         }
 

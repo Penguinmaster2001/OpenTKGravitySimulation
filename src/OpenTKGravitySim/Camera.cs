@@ -33,13 +33,13 @@ public class Camera
         }
     }
     
-    private float _fov = 110;
+    private float _fov = 45;
     public float FOV
     {
         get => _fov;
         set
         {
-            _fov = MathHelper.Clamp(value, 0.1f, 179.9f);
+            _fov = MathHelper.Clamp(value, 0.01f, 179.9f);
             UpdateProjectionMatrix();
         }
     }
@@ -133,16 +133,16 @@ public class Camera
         float scrollAmount = frameDelta * -mouseState.ScrollDelta.Y;
         if (keyboardState.IsKeyDown(Keys.LeftControl))
         {
-            FOV += 60.0f * FOV * scrollAmount;
+            FOV += 20.0f * FOV * scrollAmount;
         }
         else if (keyboardState.IsKeyDown(Keys.LeftShift))
         {
-            sensitivity += 20.0f * scrollAmount;
+            sensitivity += 10.0f * scrollAmount;
             sensitivity = MathHelper.Clamp(sensitivity, 0.1f, 10.0f);
         }
         else
         {
-            MovementSpeed += 20.0f * MovementSpeed * scrollAmount;
+            MovementSpeed += 10.0f * MovementSpeed * scrollAmount;
             MovementSpeed = MathHelper.Clamp(MovementSpeed, 5.0f, 100_000.0f);
         }
 
@@ -187,7 +187,7 @@ public class Camera
 
     public void Update(KeyboardState keyboardState, MouseState mouseState, FrameEventArgs e)
     {
-        float frameDelta = (float) e.Time;
+        float frameDelta = Math.Clamp((float)e.Time, 0.0001f, 0.02f);
 
         InputController(keyboardState, mouseState, frameDelta);
 

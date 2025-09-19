@@ -10,12 +10,16 @@ namespace OpenTKGravitySim;
 
 public class Program
 {
-    private static readonly Universe universe = new(5_000, 500.0);
-
-
-
     static void Main()
     {
+        var parameters = new SimParameters()
+        {
+            GravMult = 500.0,
+            TimeStep = 0.001,
+        };
+        var particleProcessor = new CpuParticleProcessor();
+        var universe = new Universe(10, 100.0, parameters, particleProcessor);
+
         string vertexShaderPath = "Shaders/glPoints.vert";
         string fragmentShaderPath = "Shaders/glPoints.frag";
         var shaderProgram = new ShaderProgram(vertexShaderPath, fragmentShaderPath);
