@@ -107,6 +107,7 @@ public class ShaderProgram
         SetUniform3("cameraPos", camera.Position);
         SetUniformMatrix4("view", camera.ViewMatrix);
         SetUniformMatrix4("projection", camera.ProjectionMatrix);
+        SetUniform1("fov", camera.FOV);
     }
 
 

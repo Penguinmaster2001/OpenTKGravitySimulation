@@ -10,7 +10,7 @@ namespace OpenTKGravitySim;
 
 public class Program
 {
-    private static readonly Universe universe = new(20000, 500.0);
+    private static readonly Universe universe = new(5_000, 500.0);
 
 
 
@@ -20,6 +20,8 @@ public class Program
         string fragmentShaderPath = "Shaders/glPoints.frag";
         var shaderProgram = new ShaderProgram(vertexShaderPath, fragmentShaderPath);
         var renderer = new PointRenderer(shaderProgram, universe.NumParticles);
+
+        Console.WriteLine($"num particles: {universe.NumParticles}");
 
 
         using SimWindow simWindow = new(1440, 900, universe, renderer);

@@ -133,17 +133,17 @@ public class Camera
         float scrollAmount = frameDelta * -mouseState.ScrollDelta.Y;
         if (keyboardState.IsKeyDown(Keys.LeftControl))
         {
-            FOV += 50.0f * scrollAmount;
+            FOV += 60.0f * FOV * scrollAmount;
         }
         else if (keyboardState.IsKeyDown(Keys.LeftShift))
         {
-            sensitivity += 50.0f * scrollAmount;
+            sensitivity += 20.0f * scrollAmount;
             sensitivity = MathHelper.Clamp(sensitivity, 0.1f, 10.0f);
         }
         else
         {
-            MovementSpeed += 5.0f * MovementSpeed * scrollAmount;
-            MovementSpeed = MathHelper.Clamp(MovementSpeed, 10.0f, 100_000.0f);
+            MovementSpeed += 20.0f * MovementSpeed * scrollAmount;
+            MovementSpeed = MathHelper.Clamp(MovementSpeed, 5.0f, 100_000.0f);
         }
 
         Velocity = MovementSpeed * keyboardDirection;

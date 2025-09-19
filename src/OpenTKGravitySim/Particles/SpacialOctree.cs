@@ -1,6 +1,5 @@
 
 using System.Runtime.InteropServices;
-using System.Text;
 using OpenTK.Mathematics;
 using OpenTKGravitySim.Graphics;
 
@@ -18,20 +17,18 @@ public class SpacialOctree
     public int NumLeafNodes => NumNodes - NumInternalNodes;
     public readonly List<SpacialOctreeNode> Leaves;
     public double MaxSizeDistanceRatio;
-    public int MaxDepth;
 
     private readonly List<int> InternalNodeIndices;
 
 
 
-    public SpacialOctree(double maxSizeDistanceRatio, int maxDepth = 32)
+    public SpacialOctree(double maxSizeDistanceRatio)
     {
         Nodes = [];
         Leaves = [];
         InternalNodeIndices = [];
 
         MaxSizeDistanceRatio = maxSizeDistanceRatio;
-        MaxDepth = maxDepth;
     }
 
 
