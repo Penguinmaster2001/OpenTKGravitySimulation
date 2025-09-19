@@ -48,42 +48,39 @@ public class Universe
         _particleBufA = new Particle[NumParticles];
         _particleBufB = new Particle[NumParticles];
 
-        // double weight = 1.009;
-        // int numClusters = 1000;
-        // double geoFactor = (1.0 - Math.Pow(weight, numClusters)) / (1.0 - weight);
-        // for (int i = 0; i < numClusters; i++)
-        // {
-        //     var clusterSize = Math.Pow(weight, i) / geoFactor;
-        //     var clusterRadius = size * Math.Sqrt(clusterSize);
-        //     var clusterStars = (int)Math.Floor(numParticles * clusterSize);
-        //     var center = 1.0 * size * RandomVector3(_random);
+        double weight = 1.1;
+        int numClusters = 50;
+        double geoFactor = (1.0 - Math.Pow(weight, numClusters)) / (1.0 - weight);
+        for (int i = 0; i < numClusters; i++)
+        {
+            var clusterSize = Math.Pow(weight, i) / geoFactor;
+            var clusterRadius = size * Math.Sqrt(clusterSize);
+            var clusterStars = (int)Math.Floor(numParticles * clusterSize);
+            var center = 1.0 * size * RandomVector3(_random);
 
-        //     Console.WriteLine($"{i}: size: {clusterSize}, stars: {clusterStars}");
+            Console.WriteLine($"{i}: size: {clusterSize}, stars: {clusterStars}");
 
-        //     if (_random.NextDouble() < 0.3)
-        //     {
-        //         AddParticlesEllipse(clusterStars, center, Vector3d.Zero,
-        //             RandomVector3(_random).Normalized(), RandomVector3(_random),
-        //             20.0, clusterRadius, clusterRadius / 100.0);
-        //     }
-        //     else
-        //     {
-        //         AddParticlesCluster(clusterStars, center, 0.0, 10.0, 20.0, clusterRadius);
-        //     }
-        // }
+            if (_random.NextDouble() < 0.3)
+            {
+                AddParticlesEllipse(clusterStars, center, Vector3d.Zero,
+                    RandomVector3(_random).Normalized(), RandomVector3(_random),
+                    20.0, clusterRadius, clusterRadius / 100.0);
+            }
+            else
+            {
+                AddParticlesCluster(clusterStars, center, 0.0, 10.0, 20.0, clusterRadius);
+            }
+        }
 
-        // for (; _particleCount < NumParticles; _particleCount++)
-        // {
-        //     var particle = new Particle(size * RandomVector3(_random), Vector3d.Zero, 20.0f);
-        //     _particleBufA[_particleCount] = particle;
-        //     _particleBufA[_particleCount] = particle;
-        //     _particleCount++;
-        // }
+        while (_particleCount < NumParticles)
+        {
+            AddParticle(new(size * RandomVector3(_random), Vector3d.Zero, 20.0f));
+        }
 
         // AddParticlesEllipse(numParticles / 2, new(500.0f, -50.0f, 1000.0f), 0.0 * 0.05 * -Vector3d.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 20.0, size, size / 50.0);
         // AddParticlesEllipse(numParticles / 2, new(-500.0f, 50.0f, 1000.0f), 0.0 * 0.05 * Vector3d.UnitX, 2.0f * Vector3.UnitZ, Vector3.UnitY, 20.0, size, size / 50.0);
 
-        AddParticlesEllipse(numParticles, Vector3d.Zero, Vector3d.Zero, 2.0f * Vector3.UnitZ, Vector3.UnitY, 20.0, size, 0.0);
+        // AddParticlesEllipse(numParticles, Vector3d.Zero, Vector3d.Zero, 2.0f * Vector3.UnitZ, Vector3.UnitY, 20.0, size, 0.0);
 
         _octree.Build(RefParticles);
 
@@ -102,12 +99,9 @@ public class Universe
         Vector3d normal = Vector3d.Cross(majorAxis, minorAxis);
         normal.Normalize();
 
-        var centerParticle = new Particle(center, ellipseVelocity, aveMass * numParticles);
-        _particleBufA[_particleCount] = centerParticle;
-        _particleBufA[_particleCount] = centerParticle;
-        _particleCount++;
+        AddParticle(new Particle(center, ellipseVelocity, aveMass * numParticles));
 
-        for (int i = 0; i < numParticles - 1; i++)
+        for (int i = 1; i < numParticles; i++)
         {
             double angle = random.NextDouble() * Math.Tau;
             double radius = (0.1 * scale) + (random.NextDouble() * scale);
@@ -117,11 +111,7 @@ public class Universe
 
             Vector3d newPos = center + (Math.Cos(angle) * radius * majorAxis) + (Math.Sin(angle) * radius * minorAxis) + (offPlane * normal);
             Vector3d velocity = ellipseVelocity + Math.Sqrt(10.0 * aveMass * numParticles / (newPos - center).Length) * Vector3d.Cross(newPos - center, normal).Normalized();
-            Particle particle = new(newPos, velocity, mass);
-
-            _particleBufA[_particleCount] = particle;
-            _particleBufA[_particleCount] = particle;
-            _particleCount++;
+            AddParticle(new(newPos, velocity, mass));
         }
     }
 
@@ -138,12 +128,18 @@ public class Universe
             Vector3d particlePosition = (0.5 * clusterSize * RandomVector3(random)) + center;
             Vector3d particleVelocity = (aveParticleSpeed * RandomVector3(random)) + clusterVelocity;
             double mass = random.NextDouble() * 2.0 * aveMass;
-            Particle newParticle = new(particlePosition, particleVelocity, mass);
-
-            _particleBufA[_particleCount] = newParticle;
-            _particleBufA[_particleCount] = newParticle;
-            _particleCount++;
+            AddParticle(new(particlePosition, particleVelocity, mass));
         }
+    }
+
+
+
+    private void AddParticle(Particle particle)
+    {
+        if (_particleCount >= NumParticles) return;
+        _particleBufA[_particleCount] = particle;
+        _particleBufB[_particleCount] = particle;
+        _particleCount++;
     }
 
 
@@ -182,13 +178,13 @@ public class Universe
 
         for (int p = 0; p < NumParticles; p++)
         {
-            var particle = RefParticles[p];
+            var particle = _particleBufA[p];
             particle.Position -= CenterOfMass;
-            RefParticles[p] = particle;
+            _particleBufA[p] = particle;
 
-            particle = UpdateParticles[p];
+            particle = _particleBufB[p];
             particle.Position -= CenterOfMass;
-            UpdateParticles[p] = particle;
+            _particleBufB[p] = particle;
         }
     }
 
@@ -211,8 +207,8 @@ public class Universe
             ParticleProcessor.UpdateParticles(RefParticles, UpdateParticles, _octree, Parameters);
             _particleStopwatch.Stop();
 
-            Console.WriteLine($"tree:\t\t{_buildTreeStopwatch.Elapsed}");
-            Console.WriteLine($"particles:\t{_particleStopwatch.Elapsed}");
+            // Console.WriteLine($"tree:\t\t{_buildTreeStopwatch.Elapsed}");
+            // Console.WriteLine($"particles:\t{_particleStopwatch.Elapsed}");
 
             SimulationTime += Parameters.TimeStep;
         }

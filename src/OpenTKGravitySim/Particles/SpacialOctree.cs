@@ -20,6 +20,9 @@ public class SpacialOctree
 
     private readonly List<int> InternalNodeIndices;
 
+    public int MaxDepth = 0;
+    public int MaxNodes = 0;
+
 
 
     public SpacialOctree(double maxSizeDistanceRatio)
@@ -66,6 +69,13 @@ public class SpacialOctree
         {
             Insert(particles[particleIndex]);
         }
+
+
+        if (Nodes.Count > MaxNodes)
+        {
+            MaxNodes = Nodes.Count;
+            Console.WriteLine($"New MaxNodes: {MaxNodes}");
+        }
     }
 
 
@@ -109,7 +119,7 @@ public class SpacialOctree
 
     private void Insert(Particle particle)
     {
-        Insert(0, particle.Position, particle.Mass);
+        Insert(0, particle.Position, particle.Mass, 0);
 
         //     // Start at root
         //     int nodeIndex = 0;
@@ -154,9 +164,16 @@ public class SpacialOctree
 
 
 
-    private void Insert(int nodeIndex, Vector3d position, double mass)
+    private void Insert(int nodeIndex, Vector3d position, double mass, int depth)
     {
-        var node = Nodes[nodeIndex];
+        if (depth > MaxDepth)
+        {
+            MaxDepth = depth;
+            Console.WriteLine($"New MaxDepth: {MaxDepth}");
+        }
+        // if (depth > 50) return;
+
+            var node = Nodes[nodeIndex];
 
         // If node x does not contain a body, put the new body b here.
         if (node.IsEmpty)
@@ -171,7 +188,7 @@ public class SpacialOctree
         // Recursively insert the body b in the appropriate quadrant.
         if (node.IsInternal)
         {
-            Insert(node.GetOctContainingIndex(position), position, mass);
+            Insert(node.GetOctContainingIndex(position), position, mass, depth + 1);
 
             node.CenterOfMass = ((node.Mass * node.CenterOfMass) + (mass * position)) / (node.Mass + mass);
             node.Mass += mass;
@@ -187,8 +204,8 @@ public class SpacialOctree
         // update the center-of-mass and total mass of x.
         Subdivide(nodeIndex);
 
-        Insert(Nodes[nodeIndex].GetOctContainingIndex(position), position, mass);
-        Insert(Nodes[nodeIndex].GetOctContainingIndex(node.CenterOfMass), node.CenterOfMass, node.Mass);
+        Insert(Nodes[nodeIndex].GetOctContainingIndex(position), position, mass, depth + 1);
+        Insert(Nodes[nodeIndex].GetOctContainingIndex(node.CenterOfMass), node.CenterOfMass, node.Mass, depth + 1);
         node = Nodes[nodeIndex];
 
         node.CenterOfMass = ((node.Mass * node.CenterOfMass) + (mass * position)) / (node.Mass + mass);

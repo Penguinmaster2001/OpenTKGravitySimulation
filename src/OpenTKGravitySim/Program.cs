@@ -15,10 +15,11 @@ public class Program
         var parameters = new SimParameters()
         {
             GravMult = 500.0,
-            TimeStep = 0.001,
+            TimeStep = 0.01,
         };
+
         var particleProcessor = new CpuParticleProcessor();
-        var universe = new Universe(10, 100.0, parameters, particleProcessor);
+        var universe = new Universe(10_000, 500.0, parameters, particleProcessor);
 
         string vertexShaderPath = "Shaders/glPoints.vert";
         string fragmentShaderPath = "Shaders/glPoints.frag";

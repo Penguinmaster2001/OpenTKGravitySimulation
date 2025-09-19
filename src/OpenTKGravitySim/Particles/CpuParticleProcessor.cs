@@ -1,8 +1,4 @@
 
-using OpenTK.Mathematics;
-
-
-
 namespace OpenTKGravitySim.Particles;
 
 
@@ -19,25 +15,23 @@ public class CpuParticleProcessor : IParticleProcessor
 
     private void StepParticle(int particleIndex, Particle[] refParticles, Particle[] updateParticles, SpacialOctree octree, SimParameters parameters)
     {
-        Particle particle = refParticles[particleIndex];
+        var particle = refParticles[particleIndex];
 
-        var octreeGF = parameters.GravMult * octree.CalcGravForce(particle.Position);
+        var force = parameters.GravMult * octree.CalcGravForce(particle.Position);
 
-        var force = octreeGF;
+        var acceleration = force / particle.Mass;
 
-        Vector3d acceleration = force / particle.Mass;
-
-        if (acceleration.Length > 5_000.0)
+        if (acceleration.Length > parameters.MaxAcceleration)
         {
-            acceleration = 5_000.0 * acceleration.Normalized();
+            acceleration = parameters.MaxAcceleration * acceleration.Normalized();
         }
 
-        particle.Position += new Vector3d((parameters.TimeStep * particle.Velocity) + (0.5 * parameters.TimeStep * parameters.TimeStep * acceleration));
-        particle.Velocity += new Vector3d(parameters.TimeStep * acceleration);
+        particle.Position += (parameters.TimeStep * particle.Velocity) + (0.5 * parameters.TimeStep * parameters.TimeStep * acceleration);
+        particle.Velocity += parameters.TimeStep * acceleration;
 
-        if (particle.Velocity.Length > 5_000.0)
+        if (particle.Velocity.Length > parameters.MaxVelocity)
         {
-            particle.Velocity = 5_000.0 * particle.Velocity.Normalized();
+            particle.Velocity = parameters.MaxVelocity * particle.Velocity.Normalized();
         }
 
         updateParticles[particleIndex] = particle;
