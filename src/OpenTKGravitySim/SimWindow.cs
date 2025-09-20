@@ -19,6 +19,10 @@ public class SimWindow : GameWindow
 
 
 
+    private readonly IGpuJobManager _gpuJobManager;
+
+
+
     private readonly Camera _camera;
 
     private readonly Universe _universe;
@@ -28,7 +32,7 @@ public class SimWindow : GameWindow
 
 
 
-    public SimWindow(int width, int height, Universe universe, IRenderer renderer) : base(GameWindowSettings.Default, NativeWindowSettings.Default)
+    public SimWindow(int width, int height, Universe universe, IRenderer renderer, IGpuJobManager gpuJobManager) : base(GameWindowSettings.Default, NativeWindowSettings.Default)
     {
         windowWidth = width;
         windowHeight = height;
@@ -40,6 +44,8 @@ public class SimWindow : GameWindow
         Renderer = renderer;
 
         _universe = universe;
+
+        _gpuJobManager = gpuJobManager;
     }
 
 
@@ -59,7 +65,7 @@ public class SimWindow : GameWindow
     {
         base.OnLoad();
 
-        if (!Renderer.Initialize())
+        if (!GlUserManager.GlContextInitialized())
         {
             Console.WriteLine("Failed to init renderer");
 
@@ -78,9 +84,13 @@ public class SimWindow : GameWindow
     {
         base.OnUnload();
 
-        Renderer.Delete();
+        GlUserManager.Delete();
         _universe.Paused = false;
         _universe.Running = false;
+
+        // The universe will queue another job on the gpu that is never run, so we must cancel it
+        // TODO: Do this better
+        _gpuJobManager.CancelJobs();
     }
 
 
@@ -115,6 +125,8 @@ public class SimWindow : GameWindow
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
         Renderer.ShaderProgram.SetCameraUniforms(_camera);
+
+        _gpuJobManager.RunJobs();
 
         Renderer.Render(_universe.RefParticles);
 

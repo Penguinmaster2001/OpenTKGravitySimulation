@@ -17,13 +17,14 @@ struct Particle
 
 
 
-layout(std430, binding = 0) buffer Particles {
+layout(std430, binding = 0) buffer Buf {
     Particle particles[];
 };
 
 
 
-uniform float dt;
+uniform float gravMult;
+uniform float timeStep;
 uniform int numParticles;
 
 
@@ -34,14 +35,28 @@ void main()
     uint idx = gl_GlobalInvocationID.x;
     if (idx >= numParticles) return;
 
-    // Example: simple Euler integration using attr.z as speed magnitude along some direction
-    // You probably want velocity stored explicitly in attr or separate field.
     vec3 pos = particles[idx].position.xyz;
-    vec3 vel = vec3(particles[idx].attr.z); // placeholder: your actual vel layout
-    // apply gravity
-    vel += globalAccel * dt;
-    pos += vel * dt;
+    vec3 vel = particles[idx].velocity.xyz;
+    float mass = particles[idx].attributes.x;
+
+    vec3 force = vec3(0.0);
+    for(int p = 0; p < numParticles; p++)
+    {
+        if (p == idx) continue;
+
+        Particle particle = particles[p];
+
+        vec3 direction = particle.position.xyz - pos;
+        float dist = length(direction);
+
+        force += direction * particle.attributes.x / (dist * dist * dist);
+    }
+
+    vec3 acceleration = gravMult * force / mass;
+
+    pos += (timeStep * vel) + (0.5 * timeStep * timeStep * acceleration);
+    vel += timeStep * acceleration;
 
     particles[idx].position = vec4(pos, 1.0);
-    particles[idx].attr.z = vel.x; // store back only if using same layout; adapt to your layout
+    particles[idx].velocity = vec4(vel, 0.0);
 }

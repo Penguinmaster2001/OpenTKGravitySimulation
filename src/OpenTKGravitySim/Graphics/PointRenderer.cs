@@ -29,12 +29,14 @@ public class PointRenderer : IRenderer
 
 
     public ShaderProgram ShaderProgram { get; set; }
-
+    public bool GlInitialized { get; private set; }
 
 
 
     public PointRenderer(ShaderProgram shaderProgram, int numRenderables)
     {
+        GlUserManager.RegisterGlUser(this);
+
         ShaderProgram = shaderProgram;
         _numRenderables = numRenderables;
 
@@ -96,13 +98,13 @@ public class PointRenderer : IRenderer
         _ibo?.Delete();
 
         _vao?.Delete();
-        
-        ShaderProgram.Delete();
+
+        GlInitialized = false;
     }
 
 
 
-    public bool Initialize()
+    public bool InitializeWithGlContext()
     {
         _vao = new();
 
@@ -127,6 +129,8 @@ public class PointRenderer : IRenderer
 
         _vao.UnBind();
 
-        return ShaderProgram.Initialize();
+        GlInitialized = true;
+
+        return true;
     }
 }

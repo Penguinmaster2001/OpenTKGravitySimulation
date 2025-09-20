@@ -31,36 +31,29 @@ public class Quad : IRenderer
 
 
     public ShaderProgram ShaderProgram { get; set; }
+    public bool GlInitialized { get; private set; }
 
-
-
+    
 
     public Quad(ShaderProgram shaderProgram)
     {
+        GlUserManager.RegisterGlUser(this);
         ShaderProgram = shaderProgram;
     }
 
 
-    Random random = new Random();
+
     public void Render<T>(T[] renderables) where T : IRenderable
     {
         if (vao is null || vertVBO is null || ibo is null) return;
 
-        // foreach (Particle particle in particles)
-        // {
-        //     Console.WriteLine($"{particle.Position}, {particle.Velocity}, {particle.Mass}");
-        // }
         int renderObjectCount = Math.Min(300, renderables.Length);
         _renderObjects.Clear();
 
-        uint offset = (uint)random.Next();
         for (uint i = 0; i < renderObjectCount; i++)
         {
-            RenderObject renderObject = renderables[(int)((offset + i * 110503u) % (uint)renderables.Length)].ToRenderObject();
-            _renderObjects.Add(renderObject);
+            _renderObjects.Add(renderables[i].ToRenderObject());
         }
-
-        // RenderObject[] renderObjects = renderables.Take(renderObjectCount).Select(renderable => renderable.ToRenderObject()).ToArray();
         int requiredSize = renderObjectCount * RenderObject.SizeInBytes;
 
         ShaderProgram.Bind();
@@ -111,10 +104,13 @@ public class Quad : IRenderer
         ibo?.Delete();
         vertVBO?.Delete();
         vao?.Delete();
-        ShaderProgram.Delete();
+
+        GlInitialized = false;
     }
 
-    public bool Initialize()
+
+
+    public bool InitializeWithGlContext()
     {
         vao = new();
         vertVBO = new([.. verts]);
@@ -129,6 +125,8 @@ public class Quad : IRenderer
 
         ibo = new([.. indices]);
 
-        return ShaderProgram.Initialize();
+        GlInitialized = true;
+
+        return true;
     }
 }

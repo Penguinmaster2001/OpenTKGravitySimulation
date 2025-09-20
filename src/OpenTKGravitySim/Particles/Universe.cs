@@ -43,7 +43,7 @@ public class Universe
 
         Running = false;
 
-        _octree = new(1.0);
+        _octree = new(0.5);
 
         _particleBufA = new Particle[NumParticles];
         _particleBufB = new Particle[NumParticles];
