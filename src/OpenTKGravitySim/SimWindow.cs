@@ -17,6 +17,8 @@ public class SimWindow : GameWindow
 {
     public IRenderer Renderer;
 
+    private GlSettings _glSettings;
+
 
 
     private readonly IGpuJobManager _gpuJobManager;
@@ -32,7 +34,7 @@ public class SimWindow : GameWindow
 
 
 
-    public SimWindow(int width, int height, Universe universe, IRenderer renderer, IGpuJobManager gpuJobManager) : base(GameWindowSettings.Default, NativeWindowSettings.Default)
+    public SimWindow(int width, int height, Universe universe, IRenderer renderer, GlSettings glSettings, IGpuJobManager gpuJobManager) : base(GameWindowSettings.Default, NativeWindowSettings.Default)
     {
         windowWidth = width;
         windowHeight = height;
@@ -44,6 +46,8 @@ public class SimWindow : GameWindow
         Renderer = renderer;
 
         _universe = universe;
+
+        _glSettings = glSettings;
 
         _gpuJobManager = gpuJobManager;
     }
@@ -72,10 +76,12 @@ public class SimWindow : GameWindow
             Close();
         }
 
-        GL.Enable(EnableCap.DepthTest);
-        GL.Enable(EnableCap.VertexProgramPointSize);
-        GL.Enable(EnableCap.Blend);
-        GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        // GL.Enable(EnableCap.DepthTest);
+        // GL.Enable(EnableCap.VertexProgramPointSize);
+        // GL.Enable(EnableCap.Blend);
+        // GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
+        _glSettings.Apply();
     }
 
 

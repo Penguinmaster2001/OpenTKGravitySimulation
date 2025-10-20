@@ -1,4 +1,5 @@
 ﻿
+using OpenTK.Graphics.OpenGL4;
 using OpenTKGravitySim.Compute;
 using OpenTKGravitySim.Graphics;
 using OpenTKGravitySim.Particles;
@@ -15,12 +16,20 @@ public class Program
     {
         var gpuJobManager = new GpuJobManager();
 
+        
+
 
         var parameters = new SimParameters()
         {
             GravMult = 500.0,
             TimeStep = 0.001,
         };
+
+
+        var glSettings = new GlSettings(() => GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha),
+            EnableCap.DepthTest,
+            EnableCap.VertexProgramPointSize,
+            EnableCap.Blend);
 
         // var particleProcessor = new CpuParticleProcessor();
         string computeShaderPath = "Compute/basic.compute";
@@ -36,7 +45,7 @@ public class Program
         Console.WriteLine($"num particles: {universe.NumParticles}");
 
 
-        using SimWindow simWindow = new(1440, 900, universe, renderer, gpuJobManager);
+        using SimWindow simWindow = new(1440, 900, universe, renderer, glSettings, gpuJobManager);
         Parallel.Invoke(simWindow.Run, universe.Run);
     }
 }
